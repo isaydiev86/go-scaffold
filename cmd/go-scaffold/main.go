@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/isaydiev/go-scaffold/internal/generator"
+	"github.com/isaydiev86/go-scaffold/internal/generator"
 )
 
 func main() {

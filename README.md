@@ -11,7 +11,7 @@ go install github.com/isaydiev86/go-scaffold/cmd/go-scaffold@latest
 Или собрать из исходников:
 
 ```bash
-git clone https://github.com/isaydiev/go-scaffold
+git clone https://github.com/isaydiev86/go-scaffold
 cd go-scaffold
 go build -o go-scaffold ./cmd/go-scaffold
 ```

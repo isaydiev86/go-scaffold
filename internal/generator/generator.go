@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	templates "github.com/isaydiev/go-scaffold/templates"
+	templates "github.com/isaydiev86/go-scaffold/templates"
 )
 
 // Generate renders all templates into outputDir, substituting Vars.

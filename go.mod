@@ -1,4 +1,4 @@
-module github.com/isaydiev/go-scaffold
+module github.com/isaydiev86/go-scaffold
 
 go 1.26.1
 
