@@ -1,0 +1,34 @@
+package usecase
+
+import (
+	"context"
+	"fmt"
+
+	"{{ .ModuleName }}/internal/dto"
+)
+
+func (u *UseCase) Get{{ .EntityName }}s(ctx context.Context, input dto.Get{{ .EntityName }}sInput) (dto.Get{{ .EntityName }}sOutput, error) {
+	var output dto.Get{{ .EntityName }}sOutput
+
+	err := input.Validate()
+	if err != nil {
+		return output, fmt.Errorf("input.Validate: %w", err)
+	}
+
+	if input.Limit == 0 {
+		input.Limit = 10
+	}
+
+	if input.Order == "" {
+		input.Order = "asc"
+	}
+
+	items, err := u.postgres.Get{{ .EntityName }}s(ctx, input)
+	if err != nil {
+		return output, fmt.Errorf("u.postgres.Get{{ .EntityName }}s: %w", err)
+	}
+
+	output.Items = items
+
+	return output, nil
+}

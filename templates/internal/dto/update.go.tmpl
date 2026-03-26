@@ -1,0 +1,36 @@
+package dto
+
+import "{{ .ModuleName }}/internal/domain"
+
+type Update{{ .EntityName }}Input struct {
+	ID             string   `json:"id"`
+	Name           *string  `json:"name"`
+	Amount         *float64 `json:"amount"`
+	IdempotencyKey string   `json:"idempotency_key"`
+}
+
+func (i Update{{ .EntityName }}Input) Validate() error {
+	if i.Name == nil && i.Amount == nil {
+		return domain.ErrAllFieldsForUpdateEmpty
+	}
+
+	if i.IdempotencyKey == "" {
+		return domain.ErrIdempotencyKeyRequired
+	}
+
+	return nil
+}
+
+type Update{{ .EntityName }}StatusInput struct {
+	ID             string        `json:"id"`
+	Status         domain.Status `json:"status"`
+	IdempotencyKey string        `json:"idempotency_key"`
+}
+
+func (i Update{{ .EntityName }}StatusInput) Validate() error {
+	if i.IdempotencyKey == "" {
+		return domain.ErrIdempotencyKeyRequired
+	}
+
+	return nil
+}

@@ -1,0 +1,46 @@
+package v1
+
+import (
+	"context"
+
+	http_server "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/server"
+	"{{ .ModuleName }}/internal/dto"
+	"{{ .ModuleName }}/pkg/render"
+)
+
+func (h *Handlers) Update{{ .EntityName }}(ctx context.Context, request http_server.Update{{ .EntityName }}RequestObject,
+) (http_server.Update{{ .EntityName }}ResponseObject, error) {
+	input := dto.Update{{ .EntityName }}Input{
+		ID:             request.Body.ID.String(),
+		Name:           request.Body.Name,
+		Amount:         request.Body.Amount,
+		IdempotencyKey: request.Body.IdempotencyKey,
+	}
+
+	err := h.usecase.Update{{ .EntityName }}(ctx, input)
+	if err != nil {
+		err = render.Error(ctx, err, "request failed")
+
+		return http_server.Update{{ .EntityName }}400JSONResponse{Error: err.Error()}, nil
+	}
+
+	return http_server.Update{{ .EntityName }}204Response{}, nil
+}
+
+func (h *Handlers) Update{{ .EntityName }}Status(ctx context.Context, request http_server.Update{{ .EntityName }}StatusRequestObject,
+) (http_server.Update{{ .EntityName }}StatusResponseObject, error) {
+	input := dto.Update{{ .EntityName }}StatusInput{
+		ID:             request.ID.String(),
+		Status:         domain.Status(request.Body.Status),
+		IdempotencyKey: request.Body.IdempotencyKey,
+	}
+
+	err := h.usecase.Update{{ .EntityName }}Status(ctx, input)
+	if err != nil {
+		err = render.Error(ctx, err, "request failed")
+
+		return http_server.Update{{ .EntityName }}Status400JSONResponse{Error: err.Error()}, nil
+	}
+
+	return http_server.Update{{ .EntityName }}Status204Response{}, nil
+}

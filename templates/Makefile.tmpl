@@ -1,0 +1,43 @@
+DB_MIGRATE_URL = postgres://login:pass@localhost:5432/postgres?sslmode=disable
+MIGRATE_PATH = ./migration/postgres
+
+run:
+	go run ./cmd/app
+
+lint:
+	golangci-lint run
+
+up:
+	docker compose up --build --force-recreate
+
+down:
+	docker compose down
+
+.PHONY: test
+test:
+	go test -v -cover ./...
+
+integration-test:
+	go test -count=1 -v -tags=integration ./test/integration
+
+migrate-install:
+	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.18.1
+
+migrate-create:
+	@read -p "Name:" name; \
+	migrate create -ext sql -dir "$(MIGRATE_PATH)" $$name
+
+migrate-up:
+	migrate -database "$(DB_MIGRATE_URL)" -path "$(MIGRATE_PATH)" up
+
+migrate-down:
+	migrate -database "$(DB_MIGRATE_URL)" -path "$(MIGRATE_PATH)" down -all
+
+generate:
+	go generate ./...
+
+mockery-install:
+	go install github.com/vektra/mockery/v3@v3.2.5
+
+oapi-install:
+	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest

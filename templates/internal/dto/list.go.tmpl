@@ -1,0 +1,31 @@
+package dto
+
+import (
+	"fmt"
+
+	"github.com/go-playground/validator/v10"
+
+	"{{ .ModuleName }}/internal/domain"
+)
+
+type Get{{ .EntityName }}sOutput struct {
+	Items []domain.{{ .EntityName }} `json:"items"`
+}
+
+type Get{{ .EntityName }}sInput struct {
+	Sort   string `validate:"oneofci=id name amount status created_at"`
+	Order  string `validate:"oneofci='' asc desc"`
+	Offset int    `validate:"min=0"`
+	Limit  int    `validate:"min=0,max=100"`
+}
+
+var validate = validator.New(validator.WithRequiredStructEnabled()) //nolint:gochecknoglobals
+
+func (i Get{{ .EntityName }}sInput) Validate() error {
+	err := validate.Struct(i)
+	if err != nil {
+		return fmt.Errorf("validate.Struct: %w", err)
+	}
+
+	return nil
+}

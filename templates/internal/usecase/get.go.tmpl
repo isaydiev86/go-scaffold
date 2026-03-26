@@ -1,0 +1,29 @@
+package usecase
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/google/uuid"
+
+	"{{ .ModuleName }}/internal/domain"
+	"{{ .ModuleName }}/internal/dto"
+)
+
+func (u *UseCase) Get{{ .EntityName }}(ctx context.Context, input dto.Get{{ .EntityName }}Input) (dto.Get{{ .EntityName }}Output, error) {
+	var output dto.Get{{ .EntityName }}Output
+
+	id, err := uuid.Parse(input.ID)
+	if err != nil {
+		return output, domain.ErrUUIDInvalid
+	}
+
+	e, err := u.postgres.Get{{ .EntityName }}(ctx, id)
+	if err != nil {
+		return output, fmt.Errorf("postgres.Get{{ .EntityName }}: %w", err)
+	}
+
+	return dto.Get{{ .EntityName }}Output{
+		{{ .EntityName }}: e,
+	}, nil
+}

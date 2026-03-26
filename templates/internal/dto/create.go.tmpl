@@ -1,0 +1,12 @@
+package dto
+
+import "github.com/google/uuid"
+
+type Create{{ .EntityName }}Output struct {
+	ID uuid.UUID `json:"id"`
+}
+
+type Create{{ .EntityName }}Input struct {
+	Name   string  `json:"name"`
+	Amount float64 `json:"amount"`
+}

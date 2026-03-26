@@ -1,0 +1,320 @@
+openapi: 3.0.0
+info:
+  title: {{ .ServiceNameTitle }} Service API
+  version: 1.0.0
+  description: API for managing {{ .ServiceName }}s
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local
+paths:
+  /{{ .ServiceName }}:
+    post:
+      tags:
+        - {{ .EntityName }}
+      operationId: create{{ .EntityName }}
+      summary: Create a new {{ .ServiceName }}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Create{{ .EntityName }}Input'
+      responses:
+        200:
+          description: {{ .EntityName }} created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Create{{ .EntityName }}Output'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - {{ .EntityName }}
+      operationId: update{{ .EntityName }}
+      summary: Update {{ .ServiceName }} parameters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Update{{ .EntityName }}Input'
+      responses:
+        204:
+          description: {{ .EntityName }} updated
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{{ .ServiceName }}s:
+    get:
+      tags:
+        - {{ .EntityName }}
+      operationId: get{{ .EntityName }}s
+      summary: Get list of {{ .ServiceName }}s
+      parameters:
+        - name: sort
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Sort field (id, name, status, created_at)
+          example: id
+        - name: order
+          in: query
+          required: false
+          allowEmptyValue: true
+          schema:
+            type: string
+            default: asc
+          description: Sorting direction (asc, desc or empty)
+          example: asc
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of items to skip
+          example: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 10
+          description: Maximum number of items to return
+          example: 10
+      responses:
+        200:
+          description: {{ .EntityName }}s retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Get{{ .EntityName }}Output'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{{ .ServiceName }}/{id}:
+    get:
+      tags:
+        - {{ .EntityName }}
+      operationId: get{{ .EntityName }}ByID
+      summary: Get a {{ .ServiceName }} by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: {{ .EntityName }} ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        200:
+          description: {{ .EntityName }} retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Get{{ .EntityName }}Output'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: {{ .EntityName }} not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{{ .ServiceName }}/{id}/status:
+    patch:
+      tags:
+        - {{ .EntityName }}
+      operationId: update{{ .EntityName }}Status
+      summary: Update {{ .ServiceName }} status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: {{ .EntityName }} ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Update{{ .EntityName }}StatusInput'
+      responses:
+        204:
+          description: {{ .EntityName }} status updated
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{{ .ServiceName }}/{id}/close:
+    post:
+      tags:
+        - {{ .EntityName }}
+      operationId: close{{ .EntityName }}
+      summary: Close a {{ .ServiceName }}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: {{ .EntityName }} ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        204:
+          description: {{ .EntityName }} closed
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    Create{{ .EntityName }}Input:
+      type: object
+      required:
+        - name
+        - amount
+      properties:
+        name:
+          type: string
+          description: {{ .EntityName }} name
+          example: Example Name
+          minLength: 1
+          maxLength: 128
+        amount:
+          type: number
+          format: double
+          description: Amount
+          example: 1000.00
+          minimum: 0.01
+    Create{{ .EntityName }}Output:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the created {{ .ServiceName }}
+          example: 550e8400-e29b-41d4-a716-446655440000
+    Update{{ .EntityName }}Input:
+      type: object
+      required:
+        - id
+        - idempotency_key
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the {{ .ServiceName }}
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          nullable: true
+          description: {{ .EntityName }} name
+          example: New Name
+        amount:
+          type: number
+          format: double
+          nullable: true
+          description: Amount
+          example: 2000.00
+        idempotency_key:
+          type: string
+          description: Idempotency key to prevent duplicate updates
+          example: 123e4567-e89b-12d3-a456-426614174000
+    Update{{ .EntityName }}StatusInput:
+      type: object
+      required:
+        - status
+        - idempotency_key
+      properties:
+        status:
+          type: integer
+          description: New status (1=pending, 2=active, 3=closed, 4=rejected)
+          example: 2
+        idempotency_key:
+          type: string
+          description: Idempotency key to prevent duplicate updates
+          example: 123e4567-e89b-12d3-a456-426614174000
+    Get{{ .EntityName }}Output:
+      type: object
+      required:
+        - id
+        - name
+        - amount
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: {{ .EntityName }} name
+          example: Example Name
+        amount:
+          type: number
+          format: double
+          description: Amount
+          example: 1000.00
+        status:
+          type: integer
+          description: Status
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          description: Creation time
+          example: 2024-01-01T00:00:00Z
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update time
+          example: 2024-01-01T00:00:00Z
+        closed_at:
+          type: string
+          format: date-time
+          description: Close time
+          example: 2024-01-01T00:00:00Z
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message

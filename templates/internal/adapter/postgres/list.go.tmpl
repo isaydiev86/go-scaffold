@@ -1,0 +1,84 @@
+package postgres
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jackc/pgx/v5/pgtype"
+
+	"{{ .ModuleName }}/internal/domain"
+	"{{ .ModuleName }}/internal/dto"
+	"{{ .ModuleName }}/pkg/transaction"
+)
+
+type get{{ .EntityName }}sDTO struct {
+	ID        pgtype.UUID
+	Name      pgtype.Text
+	Amount    pgtype.Float8
+	Status    pgtype.Text
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+	ClosedAt  pgtype.Timestamptz
+}
+
+func (d *get{{ .EntityName }}sDTO) toDomain() domain.{{ .EntityName }} {
+	return domain.{{ .EntityName }}{
+		ID:        d.ID.Bytes,
+		Name:      d.Name.String,
+		Amount:    d.Amount.Float64,
+		Status:    domain.NewStatus(d.Status.String),
+		CreatedAt: d.CreatedAt.Time,
+		UpdatedAt: d.UpdatedAt.Time,
+		ClosedAt:  d.ClosedAt.Time,
+	}
+}
+
+func (d *get{{ .EntityName }}sDTO) dest() []any {
+	return []any{
+		&d.ID,
+		&d.Name,
+		&d.Amount,
+		&d.Status,
+		&d.CreatedAt,
+		&d.UpdatedAt,
+		&d.ClosedAt,
+	}
+}
+
+func (p *Postgres) Get{{ .EntityName }}s(ctx context.Context, input dto.Get{{ .EntityName }}sInput) ([]domain.{{ .EntityName }}, error) {
+	sql := `SELECT id, name, amount, status, created_at, updated_at, closed_at
+              FROM {{ .ServiceName }}
+              ORDER BY %s %s
+              OFFSET %d
+              LIMIT %d`
+
+	sql = fmt.Sprintf(sql,
+		input.Sort, input.Order,
+		input.Offset,
+		input.Limit,
+	)
+
+	txOrPool := transaction.TryExtractTX(ctx)
+
+	rows, err := txOrPool.Query(ctx, sql)
+	if err != nil {
+		return nil, fmt.Errorf("txOrPool.Query: %w", err)
+	}
+
+	defer rows.Close()
+
+	items := make([]domain.{{ .EntityName }}, 0, input.Limit)
+
+	for rows.Next() {
+		var d get{{ .EntityName }}sDTO
+
+		err = rows.Scan(d.dest()...)
+		if err != nil {
+			return nil, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		items = append(items, d.toDomain())
+	}
+
+	return items, nil
+}

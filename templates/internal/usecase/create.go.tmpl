@@ -1,0 +1,35 @@
+package usecase
+
+import (
+	"context"
+	"fmt"
+
+	"{{ .ModuleName }}/internal/domain"
+	"{{ .ModuleName }}/internal/dto"
+	"{{ .ModuleName }}/pkg/transaction"
+)
+
+func (u *UseCase) Create{{ .EntityName }}(ctx context.Context, input dto.Create{{ .EntityName }}Input) (dto.Create{{ .EntityName }}Output, error) {
+	var output dto.Create{{ .EntityName }}Output
+
+	e, err := domain.New{{ .EntityName }}(input.Name, input.Amount)
+	if err != nil {
+		return output, fmt.Errorf("domain.New{{ .EntityName }}: %w", err)
+	}
+
+	err = transaction.Wrap(ctx, func(ctx context.Context) error {
+		err = u.postgres.Create{{ .EntityName }}(ctx, e)
+		if err != nil {
+			return fmt.Errorf("postgres.Create{{ .EntityName }}: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return output, fmt.Errorf("transaction.Wrap: %w", err)
+	}
+
+	return dto.Create{{ .EntityName }}Output{
+		ID: e.ID,
+	}, nil
+}

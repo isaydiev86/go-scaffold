@@ -1,0 +1,28 @@
+package v1
+
+import (
+	"context"
+
+	http_server "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/server"
+	"{{ .ModuleName }}/internal/dto"
+	"{{ .ModuleName }}/pkg/render"
+)
+
+func (h *Handlers) Create{{ .EntityName }}(ctx context.Context, request http_server.Create{{ .EntityName }}RequestObject,
+) (http_server.Create{{ .EntityName }}ResponseObject, error) {
+	input := dto.Create{{ .EntityName }}Input{
+		Name:   request.Body.Name,
+		Amount: request.Body.Amount,
+	}
+
+	output, err := h.usecase.Create{{ .EntityName }}(ctx, input)
+	if err != nil {
+		err = render.Error(ctx, err, "request failed")
+
+		return http_server.Create{{ .EntityName }}400JSONResponse{Error: err.Error()}, nil
+	}
+
+	return http_server.Create{{ .EntityName }}200JSONResponse{
+		ID: output.ID,
+	}, nil
+}

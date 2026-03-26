@@ -1,0 +1,4 @@
+go-scaffold
+*.out
+.idea/
+memory/

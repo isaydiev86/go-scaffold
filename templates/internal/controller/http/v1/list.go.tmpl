@@ -1,0 +1,56 @@
+package v1
+
+import (
+	"context"
+
+	http_server "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/server"
+	"{{ .ModuleName }}/internal/dto"
+	"{{ .ModuleName }}/pkg/render"
+)
+
+func (h *Handlers) Get{{ .EntityName }}s(ctx context.Context, request http_server.Get{{ .EntityName }}sRequestObject,
+) (http_server.Get{{ .EntityName }}sResponseObject, error) {
+	input := dto.Get{{ .EntityName }}sInput{
+		Sort: request.Params.Sort,
+	}
+
+	if request.Params.Order != nil {
+		input.Order = *request.Params.Order
+	}
+
+	if request.Params.Offset != nil {
+		input.Offset = *request.Params.Offset
+	}
+
+	if request.Params.Limit != nil {
+		input.Limit = *request.Params.Limit
+	}
+
+	output, err := h.usecase.Get{{ .EntityName }}s(ctx, input)
+	if err != nil {
+		err = render.Error(ctx, err, "request failed")
+
+		return http_server.Get{{ .EntityName }}s400JSONResponse{Error: err.Error()}, nil
+	}
+
+	items := make(http_server.Get{{ .EntityName }}s200JSONResponse, 0, len(output.Items))
+
+	for _, e := range output.Items {
+		item := http_server.Get{{ .EntityName }}Output{
+			ID:        e.ID,
+			Name:      e.Name,
+			Amount:    e.Amount,
+			Status:    int(e.Status),
+			CreatedAt: e.CreatedAt,
+			UpdatedAt: e.UpdatedAt,
+		}
+
+		if e.IsClosed() {
+			item.ClosedAt = &e.ClosedAt
+		}
+
+		items = append(items, item)
+	}
+
+	return items, nil
+}

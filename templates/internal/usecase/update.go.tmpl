@@ -1,0 +1,93 @@
+package usecase
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
+
+	"{{ .ModuleName }}/internal/domain"
+	"{{ .ModuleName }}/internal/dto"
+	"{{ .ModuleName }}/pkg/transaction"
+)
+
+func (u *UseCase) Update{{ .EntityName }}(ctx context.Context, input dto.Update{{ .EntityName }}Input) error {
+	if u.redis.IsExists(ctx, input.IdempotencyKey) {
+		log.Info().Msg("usecase Update{{ .EntityName }}: idempotent request - skipping")
+
+		return nil
+	}
+
+	err := input.Validate()
+	if err != nil {
+		return fmt.Errorf("input.Validate: %w", err)
+	}
+
+	id, err := uuid.Parse(input.ID)
+	if err != nil {
+		return domain.ErrUUIDInvalid
+	}
+
+	err = transaction.Wrap(ctx, func(ctx context.Context) error {
+		e, err := u.postgres.Get{{ .EntityName }}(ctx, id)
+		if err != nil {
+			return fmt.Errorf("postgres.Get{{ .EntityName }}: %w", err)
+		}
+
+		updated := apply{{ .EntityName }}Update(e, input)
+
+		if updated == e {
+			return nil
+		}
+
+		err = u.postgres.Update{{ .EntityName }}(ctx, updated)
+		if err != nil {
+			return fmt.Errorf("postgres.Update{{ .EntityName }}: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("transaction.Wrap: %w", err)
+	}
+
+	return nil
+}
+
+func (u *UseCase) Update{{ .EntityName }}Status(ctx context.Context, input dto.Update{{ .EntityName }}StatusInput) error {
+	if u.redis.IsExists(ctx, input.IdempotencyKey) {
+		log.Info().Msg("usecase Update{{ .EntityName }}Status: idempotent request - skipping")
+
+		return nil
+	}
+
+	err := input.Validate()
+	if err != nil {
+		return fmt.Errorf("input.Validate: %w", err)
+	}
+
+	id, err := uuid.Parse(input.ID)
+	if err != nil {
+		return domain.ErrUUIDInvalid
+	}
+
+	err = u.postgres.Update{{ .EntityName }}Status(ctx, id, input.Status)
+	if err != nil {
+		return fmt.Errorf("postgres.Update{{ .EntityName }}Status: %w", err)
+	}
+
+	return nil
+}
+
+func apply{{ .EntityName }}Update(e domain.{{ .EntityName }}, input dto.Update{{ .EntityName }}Input) domain.{{ .EntityName }} {
+	if input.Name != nil {
+		e.Name = *input.Name
+	}
+
+	if input.Amount != nil {
+		e.Amount = *input.Amount
+	}
+
+	return e
+}

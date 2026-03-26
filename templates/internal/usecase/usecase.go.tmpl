@@ -1,0 +1,37 @@
+package usecase
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+
+	"{{ .ModuleName }}/internal/domain"
+	"{{ .ModuleName }}/internal/dto"
+)
+
+//go:generate mockery
+
+type Redis interface {
+	IsExists(ctx context.Context, idempotencyKey string) bool
+}
+
+type Postgres interface {
+	Create{{ .EntityName }}(ctx context.Context, e domain.{{ .EntityName }}) error
+	Get{{ .EntityName }}(ctx context.Context, id uuid.UUID) (domain.{{ .EntityName }}, error)
+	Get{{ .EntityName }}s(ctx context.Context, input dto.Get{{ .EntityName }}sInput) ([]domain.{{ .EntityName }}, error)
+	Update{{ .EntityName }}(ctx context.Context, e domain.{{ .EntityName }}) error
+	Update{{ .EntityName }}Status(ctx context.Context, id uuid.UUID, status domain.Status) error
+	Close{{ .EntityName }}(ctx context.Context, id uuid.UUID) error
+}
+
+type UseCase struct {
+	postgres Postgres
+	redis    Redis
+}
+
+func New(postgres Postgres, redis Redis) *UseCase {
+	return &UseCase{
+		postgres: postgres,
+		redis:    redis,
+	}
+}

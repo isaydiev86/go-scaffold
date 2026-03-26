@@ -1,0 +1,42 @@
+package domain
+
+type Status int
+
+const (
+	Unknown  Status = iota
+	Pending         // 1 — pending
+	Active          // 2 — active
+	Closed          // 3 — closed
+	Rejected        // 4 — rejected
+)
+
+func NewStatus(s string) Status {
+	switch s {
+	case "pending":
+		return Pending
+	case "active":
+		return Active
+	case "closed":
+		return Closed
+	case "rejected":
+		return Rejected
+	default:
+		return Unknown
+	}
+}
+
+//nolint:exhaustive
+func (s Status) String() string {
+	switch s {
+	case Pending:
+		return "pending"
+	case Active:
+		return "active"
+	case Closed:
+		return "closed"
+	case Rejected:
+		return "rejected"
+	default:
+		return "unknown"
+	}
+}

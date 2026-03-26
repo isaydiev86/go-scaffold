@@ -1,0 +1,11 @@
+package dto
+
+import "{{ .ModuleName }}/internal/domain"
+
+type Get{{ .EntityName }}Output struct {
+	domain.{{ .EntityName }}
+}
+
+type Get{{ .EntityName }}Input struct {
+	ID string
+}

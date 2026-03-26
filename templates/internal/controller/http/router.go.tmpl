@@ -1,0 +1,23 @@
+package http
+
+import (
+	"github.com/go-chi/chi/v5"
+
+	http_server "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/server"
+	ver1 "{{ .ModuleName }}/internal/controller/http/v1"
+	"{{ .ModuleName }}/internal/usecase"
+	"{{ .ModuleName }}/pkg/logger"
+)
+
+func {{ .EntityName }}Router(r *chi.Mux, uc *usecase.UseCase) {
+	v1 := ver1.New(uc)
+
+	r.Route("/api", func(r chi.Router) {
+		r.Use(logger.Middleware)
+
+		r.Route("/v1", func(r chi.Router) {
+			mux := http_server.NewStrictHandler(v1, []http_server.StrictMiddlewareFunc{})
+			http_server.HandlerFromMux(mux, r)
+		})
+	})
+}

@@ -1,0 +1,66 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/rs/zerolog/log"
+
+	"{{ .ModuleName }}/config"
+	"{{ .ModuleName }}/internal/adapter/postgres"
+	"{{ .ModuleName }}/internal/adapter/redis"
+	"{{ .ModuleName }}/internal/controller/http"
+	"{{ .ModuleName }}/internal/usecase"
+	"{{ .ModuleName }}/pkg/httpserver"
+	pgpool "{{ .ModuleName }}/pkg/postgres"
+	redislib "{{ .ModuleName }}/pkg/redis"
+	"{{ .ModuleName }}/pkg/router"
+	"{{ .ModuleName }}/pkg/transaction"
+)
+
+func Run(ctx context.Context, c config.Config) error {
+	// Postgres
+	pgPool, err := pgpool.New(ctx, c.Postgres)
+	if err != nil {
+		return fmt.Errorf("postgres.New: %w", err)
+	}
+
+	transaction.Init(pgPool)
+
+	// Redis
+	redisClient, err := redislib.New(c.Redis)
+	if err != nil {
+		return fmt.Errorf("redislib.New: %w", err)
+	}
+
+	// UseCase
+	uc := usecase.New(
+		postgres.New(),
+		redis.New(redisClient),
+	)
+
+	// HTTP
+	r := router.New()
+	http.{{ .EntityName }}Router(r, uc)
+	httpServer := httpserver.New(r, c.HTTP)
+
+	log.Info().Msg("app: started")
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sig // wait signal
+
+	log.Info().Msg("app: got signal to stop")
+
+	httpServer.Close()
+	redisClient.Close()
+	pgPool.Close()
+
+	log.Info().Msg("app: stopped")
+
+	return nil
+}

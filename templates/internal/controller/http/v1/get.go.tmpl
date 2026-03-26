@@ -1,0 +1,45 @@
+package v1
+
+import (
+	"context"
+	"errors"
+
+	http_server "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/server"
+	"{{ .ModuleName }}/internal/domain"
+	"{{ .ModuleName }}/internal/dto"
+	"{{ .ModuleName }}/pkg/render"
+)
+
+func (h *Handlers) Get{{ .EntityName }}ByID(ctx context.Context, request http_server.Get{{ .EntityName }}ByIDRequestObject,
+) (http_server.Get{{ .EntityName }}ByIDResponseObject, error) {
+	input := dto.Get{{ .EntityName }}Input{
+		ID: request.ID.String(),
+	}
+
+	output, err := h.usecase.Get{{ .EntityName }}(ctx, input)
+	if err != nil {
+		err = render.Error(ctx, err, "request failed")
+
+		switch {
+		case errors.Is(err, domain.ErrNotFound):
+			return http_server.Get{{ .EntityName }}ByID404JSONResponse{Error: err.Error()}, nil
+		default:
+			return http_server.Get{{ .EntityName }}ByID400JSONResponse{Error: err.Error()}, nil
+		}
+	}
+
+	resp := http_server.Get{{ .EntityName }}ByID200JSONResponse{
+		ID:        output.ID,
+		Name:      output.Name,
+		Amount:    output.Amount,
+		Status:    int(output.Status),
+		CreatedAt: output.CreatedAt,
+		UpdatedAt: output.UpdatedAt,
+	}
+
+	if output.IsClosed() {
+		resp.ClosedAt = &output.ClosedAt
+	}
+
+	return resp, nil
+}

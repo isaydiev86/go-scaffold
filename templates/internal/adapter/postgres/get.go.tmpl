@@ -1,0 +1,60 @@
+package postgres
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+
+	"{{ .ModuleName }}/internal/domain"
+	"{{ .ModuleName }}/pkg/transaction"
+)
+
+func (p *Postgres) Get{{ .EntityName }}(ctx context.Context, id uuid.UUID) (domain.{{ .EntityName }}, error) {
+	const sql = `SELECT name, amount, status, created_at, updated_at, closed_at
+                    FROM {{ .ServiceName }} WHERE id = $1`
+
+	dto := struct {
+		Name      pgtype.Text
+		Amount    pgtype.Float8
+		Status    pgtype.Text
+		CreatedAt pgtype.Timestamptz
+		UpdatedAt pgtype.Timestamptz
+		ClosedAt  pgtype.Timestamptz
+	}{}
+
+	dest := []any{
+		&dto.Name,
+		&dto.Amount,
+		&dto.Status,
+		&dto.CreatedAt,
+		&dto.UpdatedAt,
+		&dto.ClosedAt,
+	}
+
+	txOrPool := transaction.TryExtractTX(ctx)
+
+	err := txOrPool.QueryRow(ctx, sql, id).Scan(dest...)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.{{ .EntityName }}{}, domain.ErrNotFound
+		}
+
+		return domain.{{ .EntityName }}{}, fmt.Errorf("txOrPool.QueryRow: %w", err)
+	}
+
+	e := domain.{{ .EntityName }}{
+		ID:        id,
+		Name:      dto.Name.String,
+		Amount:    dto.Amount.Float64,
+		Status:    domain.NewStatus(dto.Status.String),
+		CreatedAt: dto.CreatedAt.Time,
+		UpdatedAt: dto.UpdatedAt.Time,
+		ClosedAt:  dto.ClosedAt.Time,
+	}
+
+	return e, nil
+}

@@ -1,0 +1,22 @@
+BEGIN;
+
+CREATE TYPE {{ .ServiceName }}_status AS ENUM (
+    'pending',
+    'active',
+    'closed',
+    'rejected'
+);
+
+CREATE TABLE IF NOT EXISTS {{ .ServiceName }}
+(
+    id         UUID PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMPTZ,
+    closed_at  TIMESTAMPTZ,
+
+    name       TEXT           NOT NULL,
+    amount     NUMERIC(15, 2) NOT NULL,
+    status     {{ .ServiceName }}_status NOT NULL DEFAULT 'pending'
+);
+
+COMMIT;
