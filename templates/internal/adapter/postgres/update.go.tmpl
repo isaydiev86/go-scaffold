@@ -14,7 +14,7 @@ import (
 )
 
 func (p *Postgres) Update{{ .EntityName }}(ctx context.Context, e domain.{{ .EntityName }}) error {
-	const sql = `UPDATE {{ .ServiceName }} SET name = $1, amount = $2, updated_at = NOW()
+	const sql = `UPDATE {{ .ServiceNameSQL }} SET name = $1, amount = $2, updated_at = NOW()
                      WHERE id = $3`
 
 	args := []any{
@@ -38,7 +38,7 @@ func (p *Postgres) Update{{ .EntityName }}(ctx context.Context, e domain.{{ .Ent
 }
 
 func (p *Postgres) Update{{ .EntityName }}Status(ctx context.Context, id uuid.UUID, status domain.Status) error {
-	const sql = `UPDATE {{ .ServiceName }} SET status = $1, updated_at = NOW()
+	const sql = `UPDATE {{ .ServiceNameSQL }} SET status = $1, updated_at = NOW()
                      WHERE id = $2`
 
 	var pgStatus pgtype.Text

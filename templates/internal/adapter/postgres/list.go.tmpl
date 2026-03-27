@@ -47,7 +47,7 @@ func (d *get{{ .EntityName }}sDTO) dest() []any {
 
 func (p *Postgres) Get{{ .EntityName }}s(ctx context.Context, input dto.Get{{ .EntityName }}sInput) ([]domain.{{ .EntityName }}, error) {
 	sql := `SELECT id, name, amount, status, created_at, updated_at, closed_at
-              FROM {{ .ServiceName }}
+              FROM {{ .ServiceNameSQL }}
               ORDER BY %s %s
               OFFSET %d
               LIMIT %d`

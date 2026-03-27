@@ -15,7 +15,7 @@ import (
 
 func (p *Postgres) Get{{ .EntityName }}(ctx context.Context, id uuid.UUID) (domain.{{ .EntityName }}, error) {
 	const sql = `SELECT name, amount, status, created_at, updated_at, closed_at
-                    FROM {{ .ServiceName }} WHERE id = $1`
+                    FROM {{ .ServiceNameSQL }} WHERE id = $1`
 
 	dto := struct {
 		Name      pgtype.Text

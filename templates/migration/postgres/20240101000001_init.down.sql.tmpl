@@ -1,6 +1,6 @@
 BEGIN;
 
-DROP TABLE IF EXISTS {{ .ServiceName }};
-DROP TYPE IF EXISTS {{ .ServiceName }}_status;
+DROP TABLE IF EXISTS {{ .ServiceNameSQL }};
+DROP TYPE IF EXISTS {{ .ServiceNameSQL }}_status;
 
 COMMIT;

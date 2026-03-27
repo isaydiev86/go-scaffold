@@ -9,7 +9,7 @@ import (
 )
 
 func (p *Postgres) Create{{ .EntityName }}(ctx context.Context, e domain.{{ .EntityName }}) error {
-	const sql = `INSERT INTO {{ .ServiceName }} (id, name, amount, status)
+	const sql = `INSERT INTO {{ .ServiceNameSQL }} (id, name, amount, status)
                     VALUES ($1, $2, $3, $4)`
 
 	args := []any{
