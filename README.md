@@ -1,11 +1,18 @@
 # go-scaffold
 
+[![GitHub release](https://img.shields.io/github/v/release/isaydiev86/go-scaffold)](https://github.com/isaydiev86/go-scaffold/releases)
+[![Go version](https://img.shields.io/badge/go-1.26+-blue)](https://golang.org)
+
 CLI-инструмент для генерации production-ready Go микросервисов по шаблону Clean Architecture.
 
 ## Установка
 
 ```bash
+# последняя версия
 go install github.com/isaydiev86/go-scaffold/cmd/go-scaffold@latest
+
+# конкретная версия
+go install github.com/isaydiev86/go-scaffold/cmd/go-scaffold@v1.0.0
 ```
 
 Или собрать из исходников:
