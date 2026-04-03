@@ -1,0 +1,38 @@
+//go:build integration
+
+package test
+
+import (
+	"database/sql"
+	"errors"
+
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/lib/pq"
+)
+
+func (s *BaseSuite) ResetMigrations() {
+	const (
+		filesPath = "file://../../migration/postgres"
+		dbURL     = "postgres://login:pass@localhost:5432/postgres?sslmode=disable"
+	)
+
+	// Полный сброс схемы — удаляет все таблицы, типы, расширения.
+	db, err := sql.Open("postgres", dbURL)
+	s.NoError(err)
+	defer db.Close()
+
+	_, err = db.Exec("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+	s.NoError(err)
+
+	// Накатываем миграции с нуля.
+	m, err := migrate.New(filesPath, dbURL)
+	s.NoError(err)
+
+	err = m.Up()
+	if errors.Is(err, migrate.ErrNoChange) {
+		err = nil
+	}
+	s.NoError(err)
+}

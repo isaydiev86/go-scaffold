@@ -1,0 +1,193 @@
+//go:build integration
+
+package test
+
+import (
+	"bytes"
+	"context"
+	"database/sql"
+	"encoding/json"
+	"io"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+
+	pgadapter "{{ .ModuleName }}/internal/adapter/postgres"
+	redisadapter "{{ .ModuleName }}/internal/adapter/redis"
+	httpcontroller "{{ .ModuleName }}/internal/controller/http"
+	"{{ .ModuleName }}/internal/usecase"
+	"{{ .ModuleName }}/pkg/httpserver"
+	pgpool "{{ .ModuleName }}/pkg/postgres"
+	pkgredis "{{ .ModuleName }}/pkg/redis"
+	"{{ .ModuleName }}/pkg/router"
+	"{{ .ModuleName }}/pkg/transaction"
+)
+
+// Prepare:  make up
+// Run test: make integration-test
+
+const (
+	testPort    = "8080"
+	testBaseURL = "http://localhost:8080"
+)
+
+var (
+	ctx       = context.Background()
+	setupOnce sync.Once
+)
+
+// BaseSuite — общая база для всех интеграционных suite.
+// Каждый файл создаёт свой Suite, встраивая BaseSuite.
+type BaseSuite struct {
+	suite.Suite
+	*require.Assertions
+
+	httpClient *http.Client
+}
+
+func (s *BaseSuite) SetupSuite() {
+	s.Assertions = s.Require()
+
+	setupOnce.Do(func() {
+		s.ResetMigrations()
+
+		log.Logger = zerolog.Nop()
+
+		// Postgres
+		pgPool, err := pgpool.New(ctx, pgpool.Config{
+			Host:     "localhost",
+			Port:     "5432",
+			User:     "login",
+			Password: "pass",
+			DBName:   "postgres",
+		})
+		s.NoError(err)
+
+		transaction.Init(pgPool)
+
+		// Redis
+		redisClient, err := pkgredis.New(pkgredis.Config{
+			Addr: "localhost:6379",
+		})
+		s.NoError(err)
+
+		// Adapters
+		pgAdapter := pgadapter.New()
+		redisAdapter := redisadapter.New(redisClient)
+
+		// UseCase
+		uc := usecase.New(pgAdapter, redisAdapter)
+
+		// HTTP server
+		r := router.New()
+		httpcontroller.{{ .EntityName }}Router(r, uc)
+		_ = httpserver.New(r, httpserver.Config{Port: testPort})
+
+		time.Sleep(500 * time.Millisecond)
+	})
+
+	s.httpClient = &http.Client{Timeout: 10 * time.Second}
+}
+
+// --- HTTP helpers ---
+
+func (s *BaseSuite) doPost(path string, body any) *http.Response {
+	return s.doRequest(http.MethodPost, path, body)
+}
+
+func (s *BaseSuite) doPut(path string, body any) *http.Response {
+	return s.doRequest(http.MethodPut, path, body)
+}
+
+func (s *BaseSuite) doPatch(path string, body any) *http.Response {
+	return s.doRequest(http.MethodPatch, path, body)
+}
+
+func (s *BaseSuite) doGet(path string) *http.Response {
+	return s.doRequest(http.MethodGet, path, nil)
+}
+
+func (s *BaseSuite) doRequest(method, path string, body any) *http.Response {
+	var bodyReader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		s.NoError(err)
+		bodyReader = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, testBaseURL+path, bodyReader)
+	s.NoError(err)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	s.NoError(err)
+
+	return resp
+}
+
+func (s *BaseSuite) readJSON(resp *http.Response, v any) {
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	s.NoError(err)
+	s.NoError(json.Unmarshal(data, v))
+}
+
+// --- Response structs ---
+
+type createResponse struct {
+	ID uuid.UUID `json:"id"`
+}
+
+type entityResponse struct {
+	ID        uuid.UUID  `json:"id"`
+	Name      string     `json:"name"`
+	Amount    float64    `json:"amount"`
+	Status    int        `json:"status"`
+	CreatedAt string     `json:"created_at"`
+	UpdatedAt string     `json:"updated_at"`
+	ClosedAt  *string    `json:"closed_at,omitempty"`
+}
+
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
+// --- Create helper для переиспользования в тестах ---
+
+type createRequest struct {
+	Name   string  `json:"name"`
+	Amount float64 `json:"amount"`
+}
+
+func (s *BaseSuite) createEntity(name string, amount float64) createResponse {
+	body := createRequest{
+		Name:   name,
+		Amount: amount,
+	}
+
+	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
+	s.Equal(http.StatusOK, resp.StatusCode)
+
+	var result createResponse
+	s.readJSON(resp, &result)
+
+	return result
+}
+
+// --- DB helper ---
+
+func (s *BaseSuite) openDB() *sql.DB {
+	const dbURL = "postgres://login:pass@localhost:5432/postgres?sslmode=disable"
+
+	db, err := sql.Open("postgres", dbURL)
+	s.NoError(err)
+
+	return db
+}

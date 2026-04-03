@@ -1,0 +1,51 @@
+//go:build integration
+
+package test
+
+import (
+	"fmt"
+	"net/http"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/suite"
+)
+
+type Close{{ .EntityName }}Suite struct {
+	BaseSuite
+}
+
+func TestClose{{ .EntityName }}(t *testing.T) {
+	suite.Run(t, new(Close{{ .EntityName }}Suite))
+}
+
+func (s *Close{{ .EntityName }}Suite) TestClose_OK() {
+	created := s.createEntity("Close Test", 50000)
+
+	resp := s.doPost(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s/close", created.ID), nil)
+	s.Equal(http.StatusNoContent, resp.StatusCode)
+	resp.Body.Close()
+
+	// Проверяем, что closed_at заполнен.
+	getResp := s.doGet(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s", created.ID))
+	s.Equal(http.StatusOK, getResp.StatusCode)
+
+	var entity entityResponse
+	s.readJSON(getResp, &entity)
+
+	s.NotNil(entity.ClosedAt)
+}
+
+func (s *Close{{ .EntityName }}Suite) TestClose_InvalidUUID_Error() {
+	resp := s.doPost("/api/v1/{{ .ServiceName }}/not-a-uuid/close", nil)
+	s.Equal(http.StatusBadRequest, resp.StatusCode)
+	resp.Body.Close()
+}
+
+func (s *Close{{ .EntityName }}Suite) TestClose_NotFound_Error() {
+	randomID := uuid.New()
+
+	resp := s.doPost(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s/close", randomID), nil)
+	s.Equal(http.StatusBadRequest, resp.StatusCode)
+	resp.Body.Close()
+}

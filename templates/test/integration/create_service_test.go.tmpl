@@ -1,0 +1,67 @@
+//go:build integration
+
+package test
+
+import (
+	"net/http"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/suite"
+)
+
+type Create{{ .EntityName }}Suite struct {
+	BaseSuite
+}
+
+func TestCreate{{ .EntityName }}(t *testing.T) {
+	suite.Run(t, new(Create{{ .EntityName }}Suite))
+}
+
+func (s *Create{{ .EntityName }}Suite) TestCreate_OK() {
+	body := createRequest{
+		Name:   "Test Item",
+		Amount: 50000,
+	}
+
+	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
+	s.Equal(http.StatusOK, resp.StatusCode)
+
+	var result createResponse
+	s.readJSON(resp, &result)
+
+	s.NotEqual(uuid.Nil, result.ID)
+}
+
+func (s *Create{{ .EntityName }}Suite) TestCreate_EmptyName_Error() {
+	body := createRequest{
+		Name:   "",
+		Amount: 50000,
+	}
+
+	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
+	s.Equal(http.StatusBadRequest, resp.StatusCode)
+	resp.Body.Close()
+}
+
+func (s *Create{{ .EntityName }}Suite) TestCreate_ZeroAmount_Error() {
+	body := createRequest{
+		Name:   "Test Item",
+		Amount: 0,
+	}
+
+	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
+	s.Equal(http.StatusBadRequest, resp.StatusCode)
+	resp.Body.Close()
+}
+
+func (s *Create{{ .EntityName }}Suite) TestCreate_NegativeAmount_Error() {
+	body := createRequest{
+		Name:   "Test Item",
+		Amount: -100,
+	}
+
+	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
+	s.Equal(http.StatusBadRequest, resp.StatusCode)
+	resp.Body.Close()
+}

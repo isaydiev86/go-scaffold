@@ -1,0 +1,82 @@
+//go:build integration
+
+package test
+
+import (
+	"net/http"
+	"testing"
+
+	"github.com/stretchr/testify/suite"
+)
+
+type List{{ .EntityName }}sSuite struct {
+	BaseSuite
+}
+
+func TestList{{ .EntityName }}s(t *testing.T) {
+	suite.Run(t, new(List{{ .EntityName }}sSuite))
+}
+
+func (s *List{{ .EntityName }}sSuite) TestList_OK() {
+	s.createEntity("Item 1", 10000)
+	s.createEntity("Item 2", 20000)
+	s.createEntity("Item 3", 30000)
+
+	resp := s.doGet("/api/v1/{{ .ServiceName }}s?sort=created_at&order=asc&limit=10&offset=0")
+	s.Equal(http.StatusOK, resp.StatusCode)
+
+	var entities []entityResponse
+	s.readJSON(resp, &entities)
+
+	s.GreaterOrEqual(len(entities), 3)
+}
+
+func (s *List{{ .EntityName }}sSuite) TestList_WithPagination() {
+	for i := 0; i < 5; i++ {
+		s.createEntity("Paginated Item", float64((i+1)*10000))
+	}
+
+	// Первая страница.
+	resp := s.doGet("/api/v1/{{ .ServiceName }}s?sort=created_at&order=desc&limit=2&offset=0")
+	s.Equal(http.StatusOK, resp.StatusCode)
+
+	var page1 []entityResponse
+	s.readJSON(resp, &page1)
+	s.Equal(2, len(page1))
+
+	// Вторая страница.
+	resp = s.doGet("/api/v1/{{ .ServiceName }}s?sort=created_at&order=desc&limit=2&offset=2")
+	s.Equal(http.StatusOK, resp.StatusCode)
+
+	var page2 []entityResponse
+	s.readJSON(resp, &page2)
+	s.Equal(2, len(page2))
+
+	// Страницы не должны пересекаться.
+	s.NotEqual(page1[0].ID, page2[0].ID)
+}
+
+func (s *List{{ .EntityName }}sSuite) TestList_SortByAmount() {
+	s.createEntity("Sort A", 50000)
+	s.createEntity("Sort B", 10000)
+	s.createEntity("Sort C", 90000)
+
+	resp := s.doGet("/api/v1/{{ .ServiceName }}s?sort=amount&order=asc&limit=100")
+	s.Equal(http.StatusOK, resp.StatusCode)
+
+	var entities []entityResponse
+	s.readJSON(resp, &entities)
+
+	s.GreaterOrEqual(len(entities), 3)
+
+	// Проверяем сортировку по возрастанию.
+	for i := 1; i < len(entities); i++ {
+		s.LessOrEqual(entities[i-1].Amount, entities[i].Amount)
+	}
+}
+
+func (s *List{{ .EntityName }}sSuite) TestList_InvalidSort_Error() {
+	resp := s.doGet("/api/v1/{{ .ServiceName }}s?sort=invalid_field")
+	s.Equal(http.StatusBadRequest, resp.StatusCode)
+	resp.Body.Close()
+}

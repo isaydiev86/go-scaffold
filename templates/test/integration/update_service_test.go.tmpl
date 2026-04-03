@@ -1,0 +1,112 @@
+//go:build integration
+
+package test
+
+import (
+	"fmt"
+	"net/http"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/suite"
+)
+
+type Update{{ .EntityName }}Suite struct {
+	BaseSuite
+}
+
+func TestUpdate{{ .EntityName }}(t *testing.T) {
+	suite.Run(t, new(Update{{ .EntityName }}Suite))
+}
+
+// --- Update (PUT) ---
+
+func (s *Update{{ .EntityName }}Suite) TestUpdate_Amount_OK() {
+	created := s.createEntity("Update Test", 50000)
+
+	newAmount := 75000.0
+
+	body := map[string]any{
+		"id":              created.ID.String(),
+		"amount":          newAmount,
+		"idempotency_key": uuid.New().String(),
+	}
+
+	resp := s.doPut("/api/v1/{{ .ServiceName }}", body)
+	s.Equal(http.StatusNoContent, resp.StatusCode)
+	resp.Body.Close()
+
+	// Проверяем, что обновилось.
+	getResp := s.doGet(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s", created.ID))
+	s.Equal(http.StatusOK, getResp.StatusCode)
+
+	var entity entityResponse
+	s.readJSON(getResp, &entity)
+
+	s.Equal(newAmount, entity.Amount)
+}
+
+func (s *Update{{ .EntityName }}Suite) TestUpdate_MultipleFields_OK() {
+	created := s.createEntity("Multi Update", 50000)
+
+	newName := "Updated Name"
+	newAmount := 80000.0
+
+	body := map[string]any{
+		"id":              created.ID.String(),
+		"name":            newName,
+		"amount":          newAmount,
+		"idempotency_key": uuid.New().String(),
+	}
+
+	resp := s.doPut("/api/v1/{{ .ServiceName }}", body)
+	s.Equal(http.StatusNoContent, resp.StatusCode)
+	resp.Body.Close()
+
+	// Проверяем.
+	getResp := s.doGet(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s", created.ID))
+	s.Equal(http.StatusOK, getResp.StatusCode)
+
+	var entity entityResponse
+	s.readJSON(getResp, &entity)
+
+	s.Equal(newName, entity.Name)
+	s.Equal(newAmount, entity.Amount)
+}
+
+// --- UpdateStatus (PATCH) ---
+
+func (s *Update{{ .EntityName }}Suite) TestUpdateStatus_OK() {
+	created := s.createEntity("Status Test", 50000)
+
+	body := map[string]any{
+		"status":          2, // Active
+		"idempotency_key": uuid.New().String(),
+	}
+
+	resp := s.doPatch(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s/status", created.ID), body)
+	s.Equal(http.StatusNoContent, resp.StatusCode)
+	resp.Body.Close()
+
+	// Проверяем.
+	getResp := s.doGet(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s", created.ID))
+	s.Equal(http.StatusOK, getResp.StatusCode)
+
+	var entity entityResponse
+	s.readJSON(getResp, &entity)
+
+	s.Equal(2, entity.Status) // Active
+}
+
+func (s *Update{{ .EntityName }}Suite) TestUpdateStatus_InvalidStatus_Error() {
+	created := s.createEntity("Invalid Status", 50000)
+
+	body := map[string]any{
+		"status":          999,
+		"idempotency_key": uuid.New().String(),
+	}
+
+	resp := s.doPatch(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s/status", created.ID), body)
+	s.Equal(http.StatusBadRequest, resp.StatusCode)
+	resp.Body.Close()
+}
