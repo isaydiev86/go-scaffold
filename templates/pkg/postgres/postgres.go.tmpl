@@ -39,6 +39,10 @@ func New(ctx context.Context, c Config) (*Pool, error) {
 		return nil, fmt.Errorf("pgxpool.NewWithConfig: %w", err)
 	}
 
+	if err = pool.Ping(ctx); err != nil {
+		return nil, fmt.Errorf("pool.Ping: %w", err)
+	}
+
 	return &Pool{Pool: pool}, nil
 }
 
