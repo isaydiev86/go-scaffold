@@ -1,0 +1,32 @@
+package {{ .ServiceName }}_client_gen
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/google/uuid"
+
+	http_client "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/client"
+)
+
+func (c *Client) Get{{ .EntityName }}(ctx context.Context, id uuid.UUID) (*http_client.Get{{ .EntityName }}Output, error) {
+	output, err := c.client.Get{{ .EntityName }}ByIDWithResponse(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("get {{ .ServiceName }}: %w", err)
+	}
+
+	if output.StatusCode() == http.StatusNotFound {
+		return nil, ErrNotFound
+	}
+
+	if output.StatusCode() != http.StatusOK {
+		if output.JSON400 != nil {
+			return nil, fmt.Errorf("get {{ .ServiceName }}: %s", output.JSON400.Error)
+		}
+
+		return nil, fmt.Errorf("get {{ .ServiceName }}: status %s, body: %s", output.Status(), output.Body)
+	}
+
+	return output.JSON200, nil
+}

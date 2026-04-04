@@ -3,8 +3,6 @@
 package test
 
 import (
-	"fmt"
-	"net/http"
 	"testing"
 
 	"github.com/google/uuid"
@@ -22,54 +20,31 @@ func TestUpdate{{ .EntityName }}(t *testing.T) {
 // --- Update (PUT) ---
 
 func (s *Update{{ .EntityName }}Suite) TestUpdate_Amount_OK() {
-	created := s.createEntity("Update Test", 50000)
+	createdID := s.createEntity("Update Test", 50000)
 
 	newAmount := 75000.0
 
-	body := map[string]any{
-		"id":              created.ID.String(),
-		"amount":          newAmount,
-		"idempotency_key": uuid.New().String(),
-	}
-
-	resp := s.doPut("/api/v1/{{ .ServiceName }}", body)
-	s.Equal(http.StatusNoContent, resp.StatusCode)
-	resp.Body.Close()
+	err := s.api.Update{{ .EntityName }}(ctx, createdID, nil, &newAmount, uuid.New().String())
+	s.NoError(err)
 
 	// Проверяем, что обновилось.
-	getResp := s.doGet(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s", created.ID))
-	s.Equal(http.StatusOK, getResp.StatusCode)
-
-	var entity entityResponse
-	s.readJSON(getResp, &entity)
-
+	entity, err := s.api.Get{{ .EntityName }}(ctx, createdID)
+	s.NoError(err)
 	s.Equal(newAmount, entity.Amount)
 }
 
 func (s *Update{{ .EntityName }}Suite) TestUpdate_MultipleFields_OK() {
-	created := s.createEntity("Multi Update", 50000)
+	createdID := s.createEntity("Multi Update", 50000)
 
 	newName := "Updated Name"
 	newAmount := 80000.0
 
-	body := map[string]any{
-		"id":              created.ID.String(),
-		"name":            newName,
-		"amount":          newAmount,
-		"idempotency_key": uuid.New().String(),
-	}
-
-	resp := s.doPut("/api/v1/{{ .ServiceName }}", body)
-	s.Equal(http.StatusNoContent, resp.StatusCode)
-	resp.Body.Close()
+	err := s.api.Update{{ .EntityName }}(ctx, createdID, &newName, &newAmount, uuid.New().String())
+	s.NoError(err)
 
 	// Проверяем.
-	getResp := s.doGet(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s", created.ID))
-	s.Equal(http.StatusOK, getResp.StatusCode)
-
-	var entity entityResponse
-	s.readJSON(getResp, &entity)
-
+	entity, err := s.api.Get{{ .EntityName }}(ctx, createdID)
+	s.NoError(err)
 	s.Equal(newName, entity.Name)
 	s.Equal(newAmount, entity.Amount)
 }
@@ -77,36 +52,20 @@ func (s *Update{{ .EntityName }}Suite) TestUpdate_MultipleFields_OK() {
 // --- UpdateStatus (PATCH) ---
 
 func (s *Update{{ .EntityName }}Suite) TestUpdateStatus_OK() {
-	created := s.createEntity("Status Test", 50000)
+	createdID := s.createEntity("Status Test", 50000)
 
-	body := map[string]any{
-		"status":          2, // Active
-		"idempotency_key": uuid.New().String(),
-	}
-
-	resp := s.doPatch(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s/status", created.ID), body)
-	s.Equal(http.StatusNoContent, resp.StatusCode)
-	resp.Body.Close()
+	err := s.api.Update{{ .EntityName }}Status(ctx, createdID, 2, uuid.New().String())
+	s.NoError(err)
 
 	// Проверяем.
-	getResp := s.doGet(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s", created.ID))
-	s.Equal(http.StatusOK, getResp.StatusCode)
-
-	var entity entityResponse
-	s.readJSON(getResp, &entity)
-
+	entity, err := s.api.Get{{ .EntityName }}(ctx, createdID)
+	s.NoError(err)
 	s.Equal(2, entity.Status) // Active
 }
 
 func (s *Update{{ .EntityName }}Suite) TestUpdateStatus_InvalidStatus_Error() {
-	created := s.createEntity("Invalid Status", 50000)
+	createdID := s.createEntity("Invalid Status", 50000)
 
-	body := map[string]any{
-		"status":          999,
-		"idempotency_key": uuid.New().String(),
-	}
-
-	resp := s.doPatch(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s/status", created.ID), body)
-	s.Equal(http.StatusBadRequest, resp.StatusCode)
-	resp.Body.Close()
+	err := s.api.Update{{ .EntityName }}Status(ctx, createdID, 999, uuid.New().String())
+	s.Error(err)
 }

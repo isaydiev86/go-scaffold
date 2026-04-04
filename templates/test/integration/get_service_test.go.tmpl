@@ -3,12 +3,12 @@
 package test
 
 import (
-	"fmt"
-	"net/http"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
+
+	"{{ .ModuleName }}/pkg/{{ .ServiceName }}_client_gen"
 )
 
 type Get{{ .EntityName }}Suite struct {
@@ -20,15 +20,12 @@ func TestGet{{ .EntityName }}(t *testing.T) {
 }
 
 func (s *Get{{ .EntityName }}Suite) TestGet_OK() {
-	created := s.createEntity("Test Item", 50000)
+	createdID := s.createEntity("Test Item", 50000)
 
-	resp := s.doGet(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s", created.ID))
-	s.Equal(http.StatusOK, resp.StatusCode)
+	entity, err := s.api.Get{{ .EntityName }}(ctx, createdID)
+	s.NoError(err)
 
-	var entity entityResponse
-	s.readJSON(resp, &entity)
-
-	s.Equal(created.ID, entity.ID)
+	s.Equal(createdID, entity.ID)
 	s.Equal("Test Item", entity.Name)
 	s.Equal(50000.0, entity.Amount)
 	s.Equal(1, entity.Status) // Pending
@@ -37,13 +34,6 @@ func (s *Get{{ .EntityName }}Suite) TestGet_OK() {
 func (s *Get{{ .EntityName }}Suite) TestGet_NotFound() {
 	randomID := uuid.New()
 
-	resp := s.doGet(fmt.Sprintf("/api/v1/{{ .ServiceName }}/%s", randomID))
-	s.Equal(http.StatusNotFound, resp.StatusCode)
-	resp.Body.Close()
-}
-
-func (s *Get{{ .EntityName }}Suite) TestGet_InvalidUUID() {
-	resp := s.doGet("/api/v1/{{ .ServiceName }}/not-a-uuid")
-	s.Equal(http.StatusBadRequest, resp.StatusCode)
-	resp.Body.Close()
+	_, err := s.api.Get{{ .EntityName }}(ctx, randomID)
+	s.ErrorIs(err, {{ .ServiceName }}_client_gen.ErrNotFound)
 }

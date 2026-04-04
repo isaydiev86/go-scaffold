@@ -1,0 +1,26 @@
+package {{ .ServiceName }}_client_gen
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/google/uuid"
+)
+
+func (c *Client) Close{{ .EntityName }}(ctx context.Context, id uuid.UUID) error {
+	output, err := c.client.Close{{ .EntityName }}WithResponse(ctx, id)
+	if err != nil {
+		return fmt.Errorf("close {{ .ServiceName }}: %w", err)
+	}
+
+	if output.StatusCode() != http.StatusNoContent {
+		if output.JSON400 != nil {
+			return fmt.Errorf("close {{ .ServiceName }}: %s", output.JSON400.Error)
+		}
+
+		return fmt.Errorf("close {{ .ServiceName }}: status %s, body: %s", output.Status(), output.Body)
+	}
+
+	return nil
+}

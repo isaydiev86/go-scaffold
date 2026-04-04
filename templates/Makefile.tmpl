@@ -19,6 +19,7 @@ test:
 
 integration-test:
 	go test -count=1 -v -tags=integration ./test/integration
+#-tags=integration - добавить в Edit Configurations -> Go tool arguments
 
 migrate-install:
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.18.1

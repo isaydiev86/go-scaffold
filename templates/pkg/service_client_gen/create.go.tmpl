@@ -1,0 +1,33 @@
+package {{ .ServiceName }}_client_gen
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/google/uuid"
+
+	http_client "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/client"
+)
+
+func (c *Client) Create{{ .EntityName }}(ctx context.Context, name string, amount float64) (uuid.UUID, error) {
+	input := http_client.Create{{ .EntityName }}Input{
+		Name:   name,
+		Amount: amount,
+	}
+
+	output, err := c.client.Create{{ .EntityName }}WithResponse(ctx, input)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("create {{ .ServiceName }}: %w", err)
+	}
+
+	if output.StatusCode() != http.StatusOK {
+		if output.JSON400 != nil {
+			return uuid.Nil, fmt.Errorf("create {{ .ServiceName }}: %s", output.JSON400.Error)
+		}
+
+		return uuid.Nil, fmt.Errorf("create {{ .ServiceName }}: status %s, body: %s", output.Status(), output.Body)
+	}
+
+	return output.JSON200.ID, nil
+}

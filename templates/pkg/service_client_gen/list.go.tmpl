@@ -1,0 +1,33 @@
+package {{ .ServiceName }}_client_gen
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	http_client "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/client"
+)
+
+func (c *Client) Get{{ .EntityName }}s(ctx context.Context, sort string, order *string, offset *int, limit *int) ([]http_client.Get{{ .EntityName }}Output, error) {
+	params := &http_client.Get{{ .EntityName }}sParams{
+		Sort:   sort,
+		Order:  order,
+		Offset: offset,
+		Limit:  limit,
+	}
+
+	output, err := c.client.Get{{ .EntityName }}sWithResponse(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("get {{ .ServiceName }}s: %w", err)
+	}
+
+	if output.StatusCode() != http.StatusOK {
+		if output.JSON400 != nil {
+			return nil, fmt.Errorf("get {{ .ServiceName }}s: %s", output.JSON400.Error)
+		}
+
+		return nil, fmt.Errorf("get {{ .ServiceName }}s: status %s, body: %s", output.Status(), output.Body)
+	}
+
+	return *output.JSON200, nil
+}

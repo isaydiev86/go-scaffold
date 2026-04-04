@@ -1,0 +1,35 @@
+package {{ .ServiceName }}_client_gen
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/google/uuid"
+
+	http_client "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/client"
+)
+
+func (c *Client) Update{{ .EntityName }}(ctx context.Context, id uuid.UUID, name *string, amount *float64, idempotencyKey string) error {
+	input := http_client.Update{{ .EntityName }}Input{
+		ID:             id,
+		Name:           name,
+		Amount:         amount,
+		IdempotencyKey: idempotencyKey,
+	}
+
+	output, err := c.client.Update{{ .EntityName }}WithResponse(ctx, input)
+	if err != nil {
+		return fmt.Errorf("update {{ .ServiceName }}: %w", err)
+	}
+
+	if output.StatusCode() != http.StatusNoContent {
+		if output.JSON400 != nil {
+			return fmt.Errorf("update {{ .ServiceName }}: %s", output.JSON400.Error)
+		}
+
+		return fmt.Errorf("update {{ .ServiceName }}: status %s, body: %s", output.Status(), output.Body)
+	}
+
+	return nil
+}

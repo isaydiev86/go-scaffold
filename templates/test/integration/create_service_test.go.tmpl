@@ -3,7 +3,6 @@
 package test
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/google/uuid"
@@ -19,49 +18,22 @@ func TestCreate{{ .EntityName }}(t *testing.T) {
 }
 
 func (s *Create{{ .EntityName }}Suite) TestCreate_OK() {
-	body := createRequest{
-		Name:   "Test Item",
-		Amount: 50000,
-	}
-
-	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
-	s.Equal(http.StatusOK, resp.StatusCode)
-
-	var result createResponse
-	s.readJSON(resp, &result)
-
-	s.NotEqual(uuid.Nil, result.ID)
+	id, err := s.api.Create{{ .EntityName }}(ctx, "Test Item", 50000)
+	s.NoError(err)
+	s.NotEqual(uuid.Nil, id)
 }
 
 func (s *Create{{ .EntityName }}Suite) TestCreate_EmptyName_Error() {
-	body := createRequest{
-		Name:   "",
-		Amount: 50000,
-	}
-
-	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
-	s.Equal(http.StatusBadRequest, resp.StatusCode)
-	resp.Body.Close()
+	_, err := s.api.Create{{ .EntityName }}(ctx, "", 50000)
+	s.Error(err)
 }
 
 func (s *Create{{ .EntityName }}Suite) TestCreate_ZeroAmount_Error() {
-	body := createRequest{
-		Name:   "Test Item",
-		Amount: 0,
-	}
-
-	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
-	s.Equal(http.StatusBadRequest, resp.StatusCode)
-	resp.Body.Close()
+	_, err := s.api.Create{{ .EntityName }}(ctx, "Test Item", 0)
+	s.Error(err)
 }
 
 func (s *Create{{ .EntityName }}Suite) TestCreate_NegativeAmount_Error() {
-	body := createRequest{
-		Name:   "Test Item",
-		Amount: -100,
-	}
-
-	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
-	s.Equal(http.StatusBadRequest, resp.StatusCode)
-	resp.Body.Close()
+	_, err := s.api.Create{{ .EntityName }}(ctx, "Test Item", -100)
+	s.Error(err)
 }

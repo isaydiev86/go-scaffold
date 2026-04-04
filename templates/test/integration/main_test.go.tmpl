@@ -3,12 +3,8 @@
 package test
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
-	"io"
-	"net/http"
 	"sync"
 	"time"
 
@@ -23,6 +19,7 @@ import (
 	httpcontroller "{{ .ModuleName }}/internal/controller/http"
 	"{{ .ModuleName }}/internal/usecase"
 	"{{ .ModuleName }}/pkg/httpserver"
+	"{{ .ModuleName }}/pkg/{{ .ServiceName }}_client_gen"
 	pgpool "{{ .ModuleName }}/pkg/postgres"
 	pkgredis "{{ .ModuleName }}/pkg/redis"
 	"{{ .ModuleName }}/pkg/router"
@@ -32,10 +29,7 @@ import (
 // Prepare:  make up
 // Run test: make integration-test
 
-const (
-	testPort    = "8080"
-	testBaseURL = "http://localhost:8080"
-)
+const testPort = "8080"
 
 var (
 	ctx       = context.Background()
@@ -48,7 +42,7 @@ type BaseSuite struct {
 	suite.Suite
 	*require.Assertions
 
-	httpClient *http.Client
+	api *{{ .ServiceName }}_client_gen.Client
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -92,93 +86,22 @@ func (s *BaseSuite) SetupSuite() {
 		time.Sleep(500 * time.Millisecond)
 	})
 
-	s.httpClient = &http.Client{Timeout: 10 * time.Second}
-}
-
-// --- HTTP helpers ---
-
-func (s *BaseSuite) doPost(path string, body any) *http.Response {
-	return s.doRequest(http.MethodPost, path, body)
-}
-
-func (s *BaseSuite) doPut(path string, body any) *http.Response {
-	return s.doRequest(http.MethodPut, path, body)
-}
-
-func (s *BaseSuite) doPatch(path string, body any) *http.Response {
-	return s.doRequest(http.MethodPatch, path, body)
-}
-
-func (s *BaseSuite) doGet(path string) *http.Response {
-	return s.doRequest(http.MethodGet, path, nil)
-}
-
-func (s *BaseSuite) doRequest(method, path string, body any) *http.Response {
-	var bodyReader io.Reader
-	if body != nil {
-		data, err := json.Marshal(body)
-		s.NoError(err)
-		bodyReader = bytes.NewReader(data)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, testBaseURL+path, bodyReader)
+	// API client
+	var err error
+	s.api, err = {{ .ServiceName }}_client_gen.New({{ .ServiceName }}_client_gen.Config{
+		Host: "localhost",
+		Port: testPort,
+	})
 	s.NoError(err)
-
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := s.httpClient.Do(req)
-	s.NoError(err)
-
-	return resp
-}
-
-func (s *BaseSuite) readJSON(resp *http.Response, v any) {
-	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
-	s.NoError(err)
-	s.NoError(json.Unmarshal(data, v))
-}
-
-// --- Response structs ---
-
-type createResponse struct {
-	ID uuid.UUID `json:"id"`
-}
-
-type entityResponse struct {
-	ID        uuid.UUID  `json:"id"`
-	Name      string     `json:"name"`
-	Amount    float64    `json:"amount"`
-	Status    int        `json:"status"`
-	CreatedAt string     `json:"created_at"`
-	UpdatedAt string     `json:"updated_at"`
-	ClosedAt  *string    `json:"closed_at,omitempty"`
-}
-
-type errorResponse struct {
-	Error string `json:"error"`
 }
 
 // --- Create helper для переиспользования в тестах ---
 
-type createRequest struct {
-	Name   string  `json:"name"`
-	Amount float64 `json:"amount"`
-}
+func (s *BaseSuite) createEntity(name string, amount float64) uuid.UUID {
+	id, err := s.api.Create{{ .EntityName }}(ctx, name, amount)
+	s.NoError(err)
 
-func (s *BaseSuite) createEntity(name string, amount float64) createResponse {
-	body := createRequest{
-		Name:   name,
-		Amount: amount,
-	}
-
-	resp := s.doPost("/api/v1/{{ .ServiceName }}", body)
-	s.Equal(http.StatusOK, resp.StatusCode)
-
-	var result createResponse
-	s.readJSON(resp, &result)
-
-	return result
+	return id
 }
 
 // --- DB helper ---
