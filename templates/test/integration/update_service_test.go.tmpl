@@ -5,7 +5,6 @@ package test
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -24,7 +23,7 @@ func (s *Update{{ .EntityName }}Suite) TestUpdate_Amount_OK() {
 
 	newAmount := 75000.0
 
-	err := s.api.Update{{ .EntityName }}(ctx, createdID, nil, &newAmount, uuid.New().String())
+	err := s.api.Update{{ .EntityName }}(ctx, createdID, nil, &newAmount)
 	s.NoError(err)
 
 	// Проверяем, что обновилось.
@@ -39,7 +38,7 @@ func (s *Update{{ .EntityName }}Suite) TestUpdate_MultipleFields_OK() {
 	newName := "Updated Name"
 	newAmount := 80000.0
 
-	err := s.api.Update{{ .EntityName }}(ctx, createdID, &newName, &newAmount, uuid.New().String())
+	err := s.api.Update{{ .EntityName }}(ctx, createdID, &newName, &newAmount)
 	s.NoError(err)
 
 	// Проверяем.
@@ -54,7 +53,7 @@ func (s *Update{{ .EntityName }}Suite) TestUpdate_MultipleFields_OK() {
 func (s *Update{{ .EntityName }}Suite) TestUpdateStatus_OK() {
 	createdID := s.createEntity("Status Test", 50000)
 
-	err := s.api.Update{{ .EntityName }}Status(ctx, createdID, 2, uuid.New().String())
+	err := s.api.Update{{ .EntityName }}Status(ctx, createdID, 2)
 	s.NoError(err)
 
 	// Проверяем.
@@ -66,6 +65,6 @@ func (s *Update{{ .EntityName }}Suite) TestUpdateStatus_OK() {
 func (s *Update{{ .EntityName }}Suite) TestUpdateStatus_InvalidStatus_Error() {
 	createdID := s.createEntity("Invalid Status", 50000)
 
-	err := s.api.Update{{ .EntityName }}Status(ctx, createdID, 999, uuid.New().String())
+	err := s.api.Update{{ .EntityName }}Status(ctx, createdID, 999)
 	s.Error(err)
 }

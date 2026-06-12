@@ -10,12 +10,11 @@ import (
 	http_client "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/client"
 )
 
-func (c *Client) Update{{ .EntityName }}(ctx context.Context, id uuid.UUID, name *string, amount *float64, idempotencyKey string) error {
+func (c *Client) Update{{ .EntityName }}(ctx context.Context, id uuid.UUID, name *string, amount *float64) error {
 	input := http_client.Update{{ .EntityName }}Input{
-		ID:             id,
-		Name:           name,
-		Amount:         amount,
-		IdempotencyKey: idempotencyKey,
+		ID:     id,
+		Name:   name,
+		Amount: amount,
 	}
 
 	output, err := c.client.Update{{ .EntityName }}WithResponse(ctx, input)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 
 	"{{ .ModuleName }}/internal/domain"
 	"{{ .ModuleName }}/internal/dto"
@@ -13,12 +12,6 @@ import (
 )
 
 func (u *UseCase) Update{{ .EntityName }}(ctx context.Context, input dto.Update{{ .EntityName }}Input) error {
-	if u.redis.IsExists(ctx, input.IdempotencyKey) {
-		log.Info().Msg("usecase Update{{ .EntityName }}: idempotent request - skipping")
-
-		return nil
-	}
-
 	err := input.Validate()
 	if err != nil {
 		return fmt.Errorf("input.Validate: %w", err)
@@ -51,22 +44,13 @@ func (u *UseCase) Update{{ .EntityName }}(ctx context.Context, input dto.Update{
 	if err != nil {
 		return fmt.Errorf("transaction.Wrap: %w", err)
 	}
-
+{{ if .WithRedis }}
+	u.redis.Delete{{ .EntityName }}(ctx, id) // invalidate cache after update
+{{ end }}
 	return nil
 }
 
 func (u *UseCase) Update{{ .EntityName }}Status(ctx context.Context, input dto.Update{{ .EntityName }}StatusInput) error {
-	if u.redis.IsExists(ctx, input.IdempotencyKey) {
-		log.Info().Msg("usecase Update{{ .EntityName }}Status: idempotent request - skipping")
-
-		return nil
-	}
-
-	err := input.Validate()
-	if err != nil {
-		return fmt.Errorf("input.Validate: %w", err)
-	}
-
 	id, err := uuid.Parse(input.ID)
 	if err != nil {
 		return domain.ErrUUIDInvalid
@@ -76,7 +60,9 @@ func (u *UseCase) Update{{ .EntityName }}Status(ctx context.Context, input dto.U
 	if err != nil {
 		return fmt.Errorf("postgres.Update{{ .EntityName }}Status: %w", err)
 	}
-
+{{ if .WithRedis }}
+	u.redis.Delete{{ .EntityName }}(ctx, id) // invalidate cache after update
+{{ end }}
 	return nil
 }
 

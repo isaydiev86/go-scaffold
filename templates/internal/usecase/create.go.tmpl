@@ -16,13 +16,25 @@ func (u *UseCase) Create{{ .EntityName }}(ctx context.Context, input dto.Create{
 	if err != nil {
 		return output, fmt.Errorf("domain.New{{ .EntityName }}: %w", err)
 	}
-
+{{ if .WithKafkaProducer }}
+	event, err := e.ToEvent(domain.Topic{{ .EntityName }})
+	if err != nil {
+		return output, fmt.Errorf("e.ToEvent: %w", err)
+	}
+{{ end }}
 	err = transaction.Wrap(ctx, func(ctx context.Context) error {
 		err = u.postgres.Create{{ .EntityName }}(ctx, e)
 		if err != nil {
 			return fmt.Errorf("postgres.Create{{ .EntityName }}: %w", err)
 		}
-
+{{ if .WithKafkaProducer }}
+		// Transactional outbox: the event is stored together with the entity
+		// in one transaction and delivered to Kafka by the outbox worker.
+		err = u.postgres.SaveOutboxKafka(ctx, event)
+		if err != nil {
+			return fmt.Errorf("postgres.SaveOutboxKafka: %w", err)
+		}
+{{ end }}
 		return nil
 	})
 	if err != nil {

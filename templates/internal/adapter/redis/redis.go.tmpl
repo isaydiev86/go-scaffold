@@ -3,12 +3,14 @@ package redis
 import (
 	"time"
 
+	"github.com/google/uuid"
+
 	"{{ .ModuleName }}/pkg/redis"
 )
 
 const (
-	idempotencyPrefix = "idempotency:"
-	ttl               = time.Hour
+	cachePrefix = "{{ .ServiceName }}:"
+	cacheTTL    = 5 * time.Minute
 )
 
 type Redis struct {
@@ -19,4 +21,8 @@ func New(client *redis.Client) *Redis {
 	return &Redis{
 		redis: client,
 	}
+}
+
+func cacheKey(id uuid.UUID) string {
+	return cachePrefix + id.String()
 }

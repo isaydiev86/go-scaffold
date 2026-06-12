@@ -10,11 +10,18 @@ import (
 )
 
 //go:generate mockery
-
+{{ if .WithRedis }}
 type Redis interface {
-	IsExists(ctx context.Context, idempotencyKey string) bool
+	Get{{ .EntityName }}(ctx context.Context, id uuid.UUID) (domain.{{ .EntityName }}, bool)
+	Set{{ .EntityName }}(ctx context.Context, e domain.{{ .EntityName }})
+	Delete{{ .EntityName }}(ctx context.Context, id uuid.UUID)
 }
-
+{{ end }}
+{{- if .WithKafkaProducer }}
+type Kafka interface {
+	Produce(ctx context.Context, events ...domain.Event) error
+}
+{{ end }}
 type Postgres interface {
 	Create{{ .EntityName }}(ctx context.Context, e domain.{{ .EntityName }}) error
 	Get{{ .EntityName }}(ctx context.Context, id uuid.UUID) (domain.{{ .EntityName }}, error)
@@ -22,16 +29,31 @@ type Postgres interface {
 	Update{{ .EntityName }}(ctx context.Context, e domain.{{ .EntityName }}) error
 	Update{{ .EntityName }}Status(ctx context.Context, id uuid.UUID, status domain.Status) error
 	Close{{ .EntityName }}(ctx context.Context, id uuid.UUID) error
+{{- if .WithKafkaProducer }}
+
+	SaveOutboxKafka(ctx context.Context, events ...domain.Event) error
+	ReadOutboxKafka(ctx context.Context, limit int) ([]domain.Event, error)
+{{- end }}
 }
 
 type UseCase struct {
 	postgres Postgres
+{{- if .WithRedis }}
 	redis    Redis
+{{- end }}
+{{- if .WithKafkaProducer }}
+	kafka    Kafka
+{{- end }}
 }
 
-func New(postgres Postgres, redis Redis) *UseCase {
+func New(postgres Postgres{{ if .WithRedis }}, redis Redis{{ end }}{{ if .WithKafkaProducer }}, kafka Kafka{{ end }}) *UseCase {
 	return &UseCase{
 		postgres: postgres,
+{{- if .WithRedis }}
 		redis:    redis,
+{{- end }}
+{{- if .WithKafkaProducer }}
+		kafka:    kafka,
+{{- end }}
 	}
 }

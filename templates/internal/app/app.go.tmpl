@@ -10,13 +10,26 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"{{ .ModuleName }}/config"
+{{- if .WithKafkaProducer }}
+	"{{ .ModuleName }}/internal/adapter/kafka_producer"
+{{- end }}
 	"{{ .ModuleName }}/internal/adapter/postgres"
+{{- if .WithRedis }}
 	"{{ .ModuleName }}/internal/adapter/redis"
+{{- end }}
 	"{{ .ModuleName }}/internal/controller/http"
+{{- if .WithKafkaConsumer }}
+	"{{ .ModuleName }}/internal/controller/kafka_consumer"
+{{- end }}
+{{- if .WithKafkaProducer }}
+	"{{ .ModuleName }}/internal/controller/worker"
+{{- end }}
 	"{{ .ModuleName }}/internal/usecase"
 	"{{ .ModuleName }}/pkg/httpserver"
 	pgpool "{{ .ModuleName }}/pkg/postgres"
+{{- if .WithRedis }}
 	redislib "{{ .ModuleName }}/pkg/redis"
+{{- end }}
 	"{{ .ModuleName }}/pkg/router"
 	"{{ .ModuleName }}/pkg/transaction"
 )
@@ -29,19 +42,35 @@ func Run(ctx context.Context, c config.Config) error {
 	}
 
 	transaction.Init(pgPool)
-
+{{ if .WithRedis }}
 	// Redis
 	redisClient, err := redislib.New(c.Redis)
 	if err != nil {
 		return fmt.Errorf("redislib.New: %w", err)
 	}
-
+{{ end }}
+{{- if .WithKafkaProducer }}
+	// Kafka producer
+	kafkaProducer := kafka_producer.New(c.KafkaProducer)
+{{ end }}
 	// UseCase
 	uc := usecase.New(
 		postgres.New(),
+{{- if .WithRedis }}
 		redis.New(redisClient),
+{{- end }}
+{{- if .WithKafkaProducer }}
+		kafkaProducer,
+{{- end }}
 	)
-
+{{ if .WithKafkaConsumer }}
+	// Kafka consumer
+	kafkaConsumer := kafka_consumer.New(c.KafkaConsumer, uc)
+{{ end }}
+{{- if .WithKafkaProducer }}
+	// Outbox worker: delivers events from the outbox table to Kafka
+	outboxWorker := worker.NewOutboxKafka(uc, c.OutboxWorker)
+{{ end }}
 	// HTTP
 	r := router.New()
 	http.{{ .EntityName }}Router(r, uc)
@@ -57,7 +86,18 @@ func Run(ctx context.Context, c config.Config) error {
 	log.Info().Msg("app: got signal to stop")
 
 	httpServer.Close()
+{{- if .WithKafkaConsumer }}
+	kafkaConsumer.Close()
+{{- end }}
+{{- if .WithKafkaProducer }}
+	outboxWorker.Close()
+{{- end }}
+{{- if .WithRedis }}
 	redisClient.Close()
+{{- end }}
+{{- if .WithKafkaProducer }}
+	kafkaProducer.Close()
+{{- end }}
 	pgPool.Close()
 
 	log.Info().Msg("app: stopped")

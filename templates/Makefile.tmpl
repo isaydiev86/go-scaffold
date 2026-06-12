@@ -37,6 +37,20 @@ migrate-down:
 generate:
 	go generate ./...
 
+tidy:
+	go mod tidy
+
+# bootstrap prepares a freshly generated project for the first build:
+# tidy resolves template deps, generate creates mocks + OpenAPI code,
+# the second tidy picks up deps of the generated code.
+bootstrap:
+	go mod tidy
+	go generate ./...
+	go mod tidy
+
+verify: bootstrap
+	go test ./...
+
 mockery-install:
 	go install github.com/vektra/mockery/v3@v3.2.5
 

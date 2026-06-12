@@ -6,5 +6,7 @@ var (
 	ErrNotFound                = errors.New("not found")
 	ErrAllFieldsForUpdateEmpty = errors.New("all fields for update are empty")
 	ErrUUIDInvalid             = errors.New("uuid is invalid")
-	ErrIdempotencyKeyRequired  = errors.New("idempotency key required")
+{{- if .WithKafkaProducer }}
+	ErrEmptyTopic              = errors.New("event topic is empty")
+{{- end }}
 )

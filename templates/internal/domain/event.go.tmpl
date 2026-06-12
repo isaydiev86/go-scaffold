@@ -1,0 +1,29 @@
+package domain
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+// Topic{{ .EntityName }} is the Kafka topic for {{ .EntityName }} events.
+const Topic{{ .EntityName }} = "{{ .ServiceName }}-events"
+
+// Event is a message stored in the outbox table and delivered to Kafka by the outbox worker.
+type Event struct {
+	Topic string
+	Key   []byte
+	Value []byte
+}
+
+func (e {{ .EntityName }}) ToEvent(topic string) (Event, error) {
+	value, err := json.Marshal(e)
+	if err != nil {
+		return Event{}, fmt.Errorf("json.Marshal: %w", err)
+	}
+
+	return Event{
+		Topic: topic,
+		Key:   []byte(e.ID.String()),
+		Value: value,
+	}, nil
+}

@@ -14,14 +14,19 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	pgadapter "{{ .ModuleName }}/internal/adapter/postgres"
+{{ if .WithKafkaProducer }}	"{{ .ModuleName }}/internal/adapter/kafka_producer"
+{{ end }}	pgadapter "{{ .ModuleName }}/internal/adapter/postgres"
+{{- if .WithRedis }}
 	redisadapter "{{ .ModuleName }}/internal/adapter/redis"
+{{- end }}
 	httpcontroller "{{ .ModuleName }}/internal/controller/http"
 	"{{ .ModuleName }}/internal/usecase"
 	"{{ .ModuleName }}/pkg/httpserver"
 	"{{ .ModuleName }}/pkg/{{ .ServiceName }}_client_gen"
 	pgpool "{{ .ModuleName }}/pkg/postgres"
+{{- if .WithRedis }}
 	pkgredis "{{ .ModuleName }}/pkg/redis"
+{{- end }}
 	"{{ .ModuleName }}/pkg/router"
 	"{{ .ModuleName }}/pkg/transaction"
 )
@@ -64,19 +69,25 @@ func (s *BaseSuite) SetupSuite() {
 		s.NoError(err)
 
 		transaction.Init(pgPool)
-
+{{ if .WithRedis }}
 		// Redis
 		redisClient, err := pkgredis.New(pkgredis.Config{
 			Addr: "localhost:6379",
 		})
 		s.NoError(err)
-
+{{ end }}
 		// Adapters
 		pgAdapter := pgadapter.New()
+{{- if .WithRedis }}
 		redisAdapter := redisadapter.New(redisClient)
+{{- end }}
+{{- if .WithKafkaProducer }}
+		// Kafka producer (the connection is lazy — a broker is only needed when producing)
+		kafkaProducer := kafka_producer.New(kafka_producer.Config{Addr: []string{"localhost:9094"}})
+{{- end }}
 
 		// UseCase
-		uc := usecase.New(pgAdapter, redisAdapter)
+		uc := usecase.New(pgAdapter{{ if .WithRedis }}, redisAdapter{{ end }}{{ if .WithKafkaProducer }}, kafkaProducer{{ end }})
 
 		// HTTP server
 		r := router.New()

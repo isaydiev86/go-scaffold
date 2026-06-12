@@ -1,0 +1,38 @@
+package kafka_producer
+
+import (
+	"github.com/rs/zerolog/log"
+	"github.com/segmentio/kafka-go"
+
+	"{{ .ModuleName }}/pkg/logger"
+)
+
+type Config struct {
+	Addr []string `envconfig:"KAFKA_PRODUCER_ADDR" required:"true"`
+}
+
+type Producer struct {
+	writer *kafka.Writer
+}
+
+func New(c Config) *Producer {
+	w := &kafka.Writer{
+		Addr:         kafka.TCP(c.Addr...),
+		RequiredAcks: kafka.RequireAll,
+		ErrorLogger:  logger.ErrorLogger(),
+		Async:        false, // set true to batch writes if the producer becomes a bottleneck
+	}
+
+	return &Producer{
+		writer: w,
+	}
+}
+
+func (p *Producer) Close() {
+	err := p.writer.Close()
+	if err != nil {
+		log.Error().Err(err).Msg("kafka producer: writer.Close")
+	}
+
+	log.Info().Msg("kafka producer: closed")
+}

@@ -1,0 +1,81 @@
+package worker
+
+import (
+	"context"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"{{ .ModuleName }}/internal/usecase"
+)
+
+type OutboxKafkaConfig struct {
+	Limit int `default:"10" envconfig:"OUTBOX_WORKER_LIMIT"`
+}
+
+// batchTimeout bounds a single read-and-produce iteration so that a stuck
+// database or broker cannot block the worker (and shutdown) forever.
+const batchTimeout = 30 * time.Second
+
+// OutboxKafka reads events from the outbox table in batches and produces
+// them to Kafka (transactional outbox pattern, at-least-once delivery).
+type OutboxKafka struct {
+	config  OutboxKafkaConfig
+	usecase *usecase.UseCase
+	stop    chan struct{}
+	done    chan struct{}
+}
+
+func NewOutboxKafka(uc *usecase.UseCase, c OutboxKafkaConfig) *OutboxKafka {
+	w := &OutboxKafka{
+		config:  c,
+		usecase: uc,
+		stop:    make(chan struct{}),
+		done:    make(chan struct{}),
+	}
+
+	go w.run()
+
+	return w
+}
+
+func (w *OutboxKafka) run() {
+	log.Info().Msg("outbox kafka worker: started")
+
+FOR:
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), batchTimeout)
+
+		count, err := w.usecase.OutboxReadAndProduce(ctx, w.config.Limit)
+		if err != nil {
+			log.Error().Err(err).Msg("outbox kafka worker: read and produce failed")
+		}
+
+		cancel()
+
+		// If the outbox is drained, wait before polling again.
+		var duration time.Duration
+
+		if count < w.config.Limit {
+			duration = 10 * time.Second
+		}
+
+		select {
+		case <-w.stop:
+			break FOR
+		case <-time.After(duration):
+		}
+	}
+
+	close(w.done)
+}
+
+func (w *OutboxKafka) Close() {
+	log.Info().Msg("outbox kafka worker: closing")
+
+	close(w.stop)
+
+	<-w.done
+
+	log.Info().Msg("outbox kafka worker: closed")
+}

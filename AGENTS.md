@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Язык общения
 
@@ -19,20 +19,15 @@ go build ./cmd/go-scaffold
 # Run tests
 go test ./...
 
-# Smoke test: generates a project and runs make bootstrap + go test on it
-# (needs network access, mockery and oapi-codegen in PATH)
-go test -tags=smoke -timeout 20m ./internal/generator
-
 # Run the tool locally
-go run ./cmd/go-scaffold new <service-name> [--module <module-path>] [--output <dir>] [--redis] [--kafka-consumer] [--kafka-producer] [--non-interactive]
+go run ./cmd/go-scaffold new <service-name> [--module <module-path>] [--output <dir>] [--redis] [--kafka-consumer] [--kafka-producer]
 ```
 
 ## Architecture
 
 The tool itself is intentionally minimal — only `cobra` as a dependency.
 
-- **`cmd/go-scaffold/main.go`** — CLI entry point with two commands: `new` and `version`. `--non-interactive` disables all prompts (missing service name / `--module` become errors, boolean flags default to false). Service name and module path are validated via `internal/generator/validate.go`
-- A freshly generated project builds only after codegen; its Makefile has `bootstrap` (`go mod tidy` → `go generate ./...` → `go mod tidy`) and `verify` (`bootstrap` + `go test ./...`)
+- **`cmd/go-scaffold/main.go`** — CLI entry point with two commands: `new` and `version`
 - **`internal/generator/generator.go`** — walks `templates.FS`, substitutes `service` in file/dir names with `ServiceName`, strips `.tmpl` suffix, and executes each template
 - **`internal/generator/vars.go`** — `Vars` struct, `Options` struct and `NewVars()`: derives `ServiceNameTitle` (title-case), `EntityName` (singular PascalCase, e.g. "payments" → "Payment"), `ModuleName`, `GoVersion`, plus opt-in feature flags (each has a CLI flag and an interactive prompt; `skippedPaths()` in generator.go excludes the related templates when a feature is off):
   - `WithRedis` (`--redis`) — cache adapter, `pkg/redis`

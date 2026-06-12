@@ -1,0 +1,16 @@
+package redis
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
+)
+
+// Delete{{ .EntityName }} invalidates the cached entity after a write.
+func (r *Redis) Delete{{ .EntityName }}(ctx context.Context, id uuid.UUID) {
+	err := r.redis.Del(ctx, cacheKey(id)).Err()
+	if err != nil {
+		log.Error().Err(err).Msg("redis: Delete{{ .EntityName }}: r.redis.Del")
+	}
+}

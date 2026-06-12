@@ -10,10 +10,9 @@ import (
 	http_client "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/client"
 )
 
-func (c *Client) Update{{ .EntityName }}Status(ctx context.Context, id uuid.UUID, status int, idempotencyKey string) error {
+func (c *Client) Update{{ .EntityName }}Status(ctx context.Context, id uuid.UUID, status int) error {
 	input := http_client.Update{{ .EntityName }}StatusInput{
-		Status:         status,
-		IdempotencyKey: idempotencyKey,
+		Status: status,
 	}
 
 	output, err := c.client.Update{{ .EntityName }}StatusWithResponse(ctx, id, input)

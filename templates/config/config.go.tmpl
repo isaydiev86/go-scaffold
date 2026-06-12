@@ -6,10 +6,15 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 
-	"{{ .ModuleName }}/pkg/httpserver"
+{{ if .WithKafkaProducer }}	"{{ .ModuleName }}/internal/adapter/kafka_producer"
+{{ end }}{{ if .WithKafkaConsumer }}	"{{ .ModuleName }}/internal/controller/kafka_consumer"
+{{ end }}{{ if .WithKafkaProducer }}	"{{ .ModuleName }}/internal/controller/worker"
+{{ end }}	"{{ .ModuleName }}/pkg/httpserver"
 	"{{ .ModuleName }}/pkg/logger"
 	"{{ .ModuleName }}/pkg/postgres"
+{{- if .WithRedis }}
 	"{{ .ModuleName }}/pkg/redis"
+{{- end }}
 )
 
 type App struct {
@@ -22,7 +27,18 @@ type Config struct {
 	HTTP     httpserver.Config
 	Logger   logger.Config
 	Postgres postgres.Config
+{{- if .WithRedis }}
 	Redis    redis.Config
+{{- end }}
+{{- if .WithKafkaProducer }}
+
+	KafkaProducer kafka_producer.Config
+	OutboxWorker  worker.OutboxKafkaConfig
+{{- end }}
+{{- if .WithKafkaConsumer }}
+
+	KafkaConsumer kafka_consumer.Config
+{{- end }}
 }
 
 func New() (Config, error) {

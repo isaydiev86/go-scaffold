@@ -1,0 +1,25 @@
+package redis
+
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/rs/zerolog/log"
+
+	"{{ .ModuleName }}/internal/domain"
+)
+
+// Set{{ .EntityName }} stores the entity in the cache for cacheTTL.
+func (r *Redis) Set{{ .EntityName }}(ctx context.Context, e domain.{{ .EntityName }}) {
+	data, err := json.Marshal(e)
+	if err != nil {
+		log.Error().Err(err).Msg("redis: Set{{ .EntityName }}: json.Marshal")
+
+		return
+	}
+
+	err = r.redis.Set(ctx, cacheKey(e.ID), data, cacheTTL).Err()
+	if err != nil {
+		log.Error().Err(err).Msg("redis: Set{{ .EntityName }}: r.redis.Set")
+	}
+}

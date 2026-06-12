@@ -231,7 +231,6 @@ components:
       type: object
       required:
         - id
-        - idempotency_key
       properties:
         id:
           type: string
@@ -249,24 +248,15 @@ components:
           nullable: true
           description: Amount
           example: 2000.00
-        idempotency_key:
-          type: string
-          description: Idempotency key to prevent duplicate updates
-          example: 123e4567-e89b-12d3-a456-426614174000
     Update{{ .EntityName }}StatusInput:
       type: object
       required:
         - status
-        - idempotency_key
       properties:
         status:
           type: integer
           description: New status (1=pending, 2=active, 3=closed, 4=rejected)
           example: 2
-        idempotency_key:
-          type: string
-          description: Idempotency key to prevent duplicate updates
-          example: 123e4567-e89b-12d3-a456-426614174000
     Get{{ .EntityName }}Output:
       type: object
       required:

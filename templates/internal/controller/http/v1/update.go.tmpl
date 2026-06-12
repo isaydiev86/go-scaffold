@@ -4,6 +4,7 @@ import (
 	"context"
 
 	http_server "{{ .ModuleName }}/gen/http/{{ .ServiceName }}_v1/server"
+	"{{ .ModuleName }}/internal/domain"
 	"{{ .ModuleName }}/internal/dto"
 	"{{ .ModuleName }}/pkg/render"
 )
@@ -11,10 +12,9 @@ import (
 func (h *Handlers) Update{{ .EntityName }}(ctx context.Context, request http_server.Update{{ .EntityName }}RequestObject,
 ) (http_server.Update{{ .EntityName }}ResponseObject, error) {
 	input := dto.Update{{ .EntityName }}Input{
-		ID:             request.Body.ID.String(),
-		Name:           request.Body.Name,
-		Amount:         request.Body.Amount,
-		IdempotencyKey: request.Body.IdempotencyKey,
+		ID:     request.Body.ID.String(),
+		Name:   request.Body.Name,
+		Amount: request.Body.Amount,
 	}
 
 	err := h.usecase.Update{{ .EntityName }}(ctx, input)
@@ -30,9 +30,8 @@ func (h *Handlers) Update{{ .EntityName }}(ctx context.Context, request http_ser
 func (h *Handlers) Update{{ .EntityName }}Status(ctx context.Context, request http_server.Update{{ .EntityName }}StatusRequestObject,
 ) (http_server.Update{{ .EntityName }}StatusResponseObject, error) {
 	input := dto.Update{{ .EntityName }}StatusInput{
-		ID:             request.ID.String(),
-		Status:         domain.Status(request.Body.Status),
-		IdempotencyKey: request.Body.IdempotencyKey,
+		ID:     request.ID.String(),
+		Status: domain.Status(request.Body.Status),
 	}
 
 	err := h.usecase.Update{{ .EntityName }}Status(ctx, input)

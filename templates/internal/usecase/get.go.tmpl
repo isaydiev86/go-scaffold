@@ -17,12 +17,21 @@ func (u *UseCase) Get{{ .EntityName }}(ctx context.Context, input dto.Get{{ .Ent
 	if err != nil {
 		return output, domain.ErrUUIDInvalid
 	}
-
+{{ if .WithRedis }}
+	// Cache-aside: try the cache first, fall back to the database on a miss.
+	if e, ok := u.redis.Get{{ .EntityName }}(ctx, id); ok {
+		return dto.Get{{ .EntityName }}Output{
+			{{ .EntityName }}: e,
+		}, nil
+	}
+{{ end }}
 	e, err := u.postgres.Get{{ .EntityName }}(ctx, id)
 	if err != nil {
 		return output, fmt.Errorf("postgres.Get{{ .EntityName }}: %w", err)
 	}
-
+{{ if .WithRedis }}
+	u.redis.Set{{ .EntityName }}(ctx, e)
+{{ end }}
 	return dto.Get{{ .EntityName }}Output{
 		{{ .EntityName }}: e,
 	}, nil

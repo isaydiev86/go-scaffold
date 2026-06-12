@@ -20,6 +20,8 @@ func (u *UseCase) Close{{ .EntityName }}(ctx context.Context, input dto.Close{{ 
 	if err != nil {
 		return fmt.Errorf("postgres.Close{{ .EntityName }}: %w", err)
 	}
-
+{{ if .WithRedis }}
+	u.redis.Delete{{ .EntityName }}(ctx, id) // invalidate cache after close
+{{ end }}
 	return nil
 }
