@@ -20,11 +20,19 @@ func TestSmokeBootstrap(t *testing.T) {
 		}
 	}
 
+	// All 2^3 option combinations: conditional blocks in the templates
+	// (imports, usecase.New arguments, Close order) can break on any of them.
 	cases := []struct {
 		name string
 		opts Options
 	}{
 		{name: "base", opts: Options{}},
+		{name: "redis", opts: Options{WithRedis: true}},
+		{name: "kafka-consumer", opts: Options{WithKafkaConsumer: true}},
+		{name: "kafka-producer", opts: Options{WithKafkaProducer: true}},
+		{name: "redis-kafka-consumer", opts: Options{WithRedis: true, WithKafkaConsumer: true}},
+		{name: "redis-kafka-producer", opts: Options{WithRedis: true, WithKafkaProducer: true}},
+		{name: "kafka-consumer-producer", opts: Options{WithKafkaConsumer: true, WithKafkaProducer: true}},
 		{name: "all", opts: Options{WithRedis: true, WithKafkaConsumer: true, WithKafkaProducer: true}},
 	}
 
