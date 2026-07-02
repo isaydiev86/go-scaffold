@@ -4,12 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/isaydiev86/go-scaffold/internal/generator"
 )
+
+// version can be set at build time: go build -ldflags "-X main.version=v1.2.3".
+// When empty, the module version recorded by `go install ...@vX.Y.Z` is used.
+var version string
 
 func main() {
 	root := &cobra.Command{
@@ -159,9 +164,23 @@ func versionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "Print version",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("go-scaffold v0.1.0")
+			fmt.Println("go-scaffold " + versionString())
 		},
 	}
+}
+
+// versionString resolves the version: ldflags override first, then the module
+// version from build info (set by `go install ...@vX.Y.Z`), else "(devel)".
+func versionString() string {
+	if version != "" {
+		return version
+	}
+
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
+		return info.Main.Version
+	}
+
+	return "(devel)"
 }
 
 // isYes reports whether the answer is an affirmative "y"/"yes" (case-insensitive).

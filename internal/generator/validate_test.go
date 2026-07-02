@@ -40,7 +40,7 @@ func TestValidateModulePath(t *testing.T) {
 	valid := []string{
 		"github.com/myorg/payments",
 		"example.com/svc",
-		"payments",
+		"github.com/MyOrg/payments",
 	}
 	for _, m := range valid {
 		if err := ValidateModulePath(m); err != nil {
@@ -50,9 +50,12 @@ func TestValidateModulePath(t *testing.T) {
 
 	invalid := []string{
 		"",
+		"payments", // no dot in the first path element
 		"github.com/my org/payments",
 		"/github.com/myorg/payments",
 		"github.com/myorg/payments/",
+		"github.com/myorg//payments",
+		"модуль.рф/payments",
 	}
 	for _, m := range invalid {
 		if err := ValidateModulePath(m); err == nil {

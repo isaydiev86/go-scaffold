@@ -25,10 +25,10 @@ go run ./cmd/go-scaffold new <service-name> [--module <module-path>] [--output <
 
 ## Architecture
 
-The tool itself is intentionally minimal — only `cobra` as a dependency.
+The tool itself is intentionally minimal — only `cobra` and `golang.org/x/mod` (module path validation) as dependencies.
 
 - **`cmd/go-scaffold/main.go`** — CLI entry point with two commands: `new` and `version`
-- **`internal/generator/generator.go`** — walks `templates.FS`, substitutes `service` in file/dir names with `ServiceName`, strips `.tmpl` suffix, and executes each template
+- **`internal/generator/generator.go`** — walks `templates.FS`, substitutes the `__service__` placeholder in file/dir names with `ServiceName`, strips `.tmpl` suffix, and executes each template
 - **`internal/generator/vars.go`** — `Vars` struct, `Options` struct and `NewVars()`: derives `ServiceNameTitle` (title-case), `EntityName` (singular PascalCase, e.g. "payments" → "Payment"), `ModuleName`, `GoVersion`, plus opt-in feature flags (each has a CLI flag and an interactive prompt; `skippedPaths()` in generator.go excludes the related templates when a feature is off):
   - `WithRedis` (`--redis`) — cache adapter, `pkg/redis`
   - `WithKafkaConsumer` (`--kafka-consumer`) — `internal/controller/kafka_consumer`
@@ -38,7 +38,7 @@ The tool itself is intentionally minimal — only `cobra` as a dependency.
 
 ## Template conventions
 
-- File and directory names containing `service` are renamed to the lowercase service name at generation time (e.g. `internal/service/service.go.tmpl` → `internal/payments/payments.go`)
+- The `__service__` placeholder in file and directory names is replaced with the lowercase service name at generation time (e.g. `api/http/__service___v1.yaml.tmpl` → `api/http/payments_v1.yaml`)
 - Template variables: `{{ .ServiceName }}`, `{{ .ServiceNameTitle }}`, `{{ .EntityName }}`, `{{ .ModuleName }}`, `{{ .GoVersion }}`, `{{ .WithRedis }}`, `{{ .WithKafkaConsumer }}`, `{{ .WithKafkaProducer }}`, `{{ .WithKafka }}`
 - The `singular()` helper simply strips a trailing `s` — service names ending in anything other than a regular English plural may produce unexpected entity names
 
@@ -57,5 +57,5 @@ Generated services follow Clean Architecture layers:
 ## Adding a new template file
 
 1. Create the `.tmpl` file under `templates/` using the template variables above
-2. Use `service` in the path anywhere the service name should appear
+2. Use `__service__` in the path anywhere the service name should appear
 3. No registration needed — the generator walks the entire embedded FS automatically

@@ -3,9 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/rs/zerolog/log"
 
@@ -78,12 +75,15 @@ func Run(ctx context.Context, c config.Config) error {
 
 	log.Info().Msg("app: started")
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	var runErr error
 
-	<-sig // wait signal
-
-	log.Info().Msg("app: got signal to stop")
+	select {
+	case <-ctx.Done(): // SIGINT/SIGTERM via signal.NotifyContext in main
+		log.Info().Msg("app: got signal to stop")
+	case err = <-httpServer.Notify():
+		runErr = fmt.Errorf("httpserver.Notify: %w", err)
+		log.Error().Err(err).Msg("app: http server stopped unexpectedly")
+	}
 
 	httpServer.Close()
 {{- if .WithKafkaConsumer }}
@@ -102,5 +102,5 @@ func Run(ctx context.Context, c config.Config) error {
 
 	log.Info().Msg("app: stopped")
 
-	return nil
+	return runErr
 }

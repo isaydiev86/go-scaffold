@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"os/signal"
+	"syscall"
 
 	"github.com/rs/zerolog/log"
 
@@ -20,7 +22,8 @@ func main() {
 
 	logger.Init(c.Logger)
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	err = app.Run(ctx, c)
 	if err != nil {

@@ -73,14 +73,14 @@ func TestGenerate(t *testing.T) {
 			assertOptional(t, outDir, producerFiles, tc.opts.WithKafkaProducer)
 			assertOptional(t, outDir, kafkaFiles, tc.opts.WithKafkaConsumer || tc.opts.WithKafkaProducer)
 
-			// No generated path may keep the "service" placeholder or the .tmpl suffix.
+			// No generated path may keep the "__service__" placeholder or the .tmpl suffix.
 			err := filepath.WalkDir(outDir, func(path string, _ os.DirEntry, err error) error {
 				if err != nil {
 					return err
 				}
 				rel, _ := filepath.Rel(outDir, path)
-				if strings.Contains(rel, "service") {
-					t.Errorf("path %q still contains the \"service\" placeholder", rel)
+				if strings.Contains(rel, "__service__") {
+					t.Errorf("path %q still contains the \"__service__\" placeholder", rel)
 				}
 				if strings.HasSuffix(rel, ".tmpl") {
 					t.Errorf("path %q still has the .tmpl suffix", rel)

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"golang.org/x/mod/module"
 )
 
 // serviceNameRe allows lowercase letters, digits and single hyphens:
@@ -28,19 +30,15 @@ func ValidateServiceName(name string) error {
 	return nil
 }
 
-// ValidateModulePath performs a minimal sanity check of a Go module path.
-func ValidateModulePath(module string) error {
-	if module == "" {
+// ValidateModulePath checks a Go module path with the same rules the go
+// toolchain uses (invalid characters, reserved names, a dot in the first
+// path element, etc.).
+func ValidateModulePath(mod string) error {
+	if mod == "" {
 		return fmt.Errorf("module path is required")
 	}
 
-	if strings.ContainsAny(module, " \t") {
-		return fmt.Errorf("invalid module path %q: spaces are not allowed", module)
-	}
-
-	if strings.HasPrefix(module, "/") || strings.HasSuffix(module, "/") {
-		return fmt.Errorf("invalid module path %q: must not start or end with a slash", module)
-	}
-
-	return nil
+	// module.CheckPath errors already include the path and the reason,
+	// e.g.: malformed module path "myorg/payments": missing dot in first path element
+	return module.CheckPath(mod)
 }

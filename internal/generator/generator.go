@@ -33,8 +33,8 @@ func Generate(vars Vars, outputDir string) error {
 			return nil
 		}
 
-		// Build output path: replace "service" placeholder → ServiceName, strip .tmpl
-		outRel := strings.ReplaceAll(path, "service", vars.ServiceName)
+		// Build output path: replace the "__service__" placeholder → ServiceName, strip .tmpl
+		outRel := strings.ReplaceAll(path, "__service__", vars.ServiceName)
 		outRel = strings.TrimSuffix(outRel, ".tmpl")
 		outPath := filepath.Join(outputDir, outRel)
 

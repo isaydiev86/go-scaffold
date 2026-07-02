@@ -16,6 +16,7 @@ type Config struct {
 
 type Server struct {
 	server *http.Server
+	notify chan error
 }
 
 func New(handler http.Handler, c Config) *Server {
@@ -28,6 +29,7 @@ func New(handler http.Handler, c Config) *Server {
 
 	s := &Server{
 		server: httpServer,
+		notify: make(chan error, 1),
 	}
 
 	go s.start()
@@ -40,8 +42,16 @@ func New(handler http.Handler, c Config) *Server {
 func (s *Server) start() {
 	err := s.server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Error().Err(err).Msg("http server: ListenAndServe")
+		s.notify <- err
 	}
+	close(s.notify)
+}
+
+// Notify returns a channel that receives the ListenAndServe error
+// if the server stops unexpectedly (e.g. the port is already in use).
+// The channel is closed on graceful shutdown without sending anything.
+func (s *Server) Notify() <-chan error {
+	return s.notify
 }
 
 func (s *Server) Close() {
